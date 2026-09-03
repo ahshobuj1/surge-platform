@@ -4,6 +4,10 @@ info:
   name: Surge Platform API
 
 request:
+  auth:
+    mode: bearer
+    bearer:
+      token: "{{jwtToken}}"
   variables:
     - name: baseUrl
       value: http://localhost:3000
