@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, Suspense } from "react";
+import { useState, useMemo, Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { OnboardingSidebar, Step } from "@/app/component/onboarding/OnboardingSidebar";
 import { Card } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import { StepPaywall, PlanTier, BillingInterval, PLAN_TIERS, PlanId } from "@/ap
 import { StepCheckout } from "@/app/component/onboarding/StepCheckout";
 import { StepCompleted } from "@/app/component/onboarding/StepCompleted";
 import { useWorkspace } from "@/lib/context/WorkspaceContext";
+import { useAuth } from "@/lib/context/AuthContext";
 import { api } from "@/lib/api";
 import type { ValidatedFeedInfo } from "@/app/component/onboarding/StepAddFeeds";
 
@@ -70,6 +71,19 @@ function OnboardingContent({ onComplete }: OnboardingProps) {
     }
     return PLAN_TIERS.find((p) => p.id === "pro") || PLAN_TIERS[1];
   }, [planParam]);
+
+  const { user, isAuthenticated, isLoading: authLoading, completeOnboarding } = useAuth();
+
+  // Guard: if user is already onboarded and not actively looking at a return checkout session, redirect to /dashboard
+  useEffect(() => {
+    if (!authLoading) {
+      if (!isAuthenticated) {
+        router.replace("/login");
+      } else if (user?.isOnboarded && !sessionId && stepParam !== "completed" && stepParam !== "7") {
+        router.replace("/dashboard");
+      }
+    }
+  }, [authLoading, isAuthenticated, user, sessionId, stepParam, router]);
 
   const navigateToStep = (newStep: number, planOverride?: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -151,12 +165,26 @@ function OnboardingContent({ onComplete }: OnboardingProps) {
       console.warn("Could not automatically create workspace RSS feed:", err);
     }
 
+    try {
+      await completeOnboarding();
+    } catch (err: unknown) {
+      console.warn("Could not mark onboarding complete:", err);
+    }
+
     if (onComplete) {
       onComplete();
     } else {
       navigateToStep(7);
     }
   };
+
+  if (authLoading || (!sessionId && stepParam !== "completed" && stepParam !== "7" && user?.isOnboarded)) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-[#E6EBF5] via-[#D8E0F2] to-[#B8C4E6]">
+        <div className="w-10 h-10 rounded-full border-2 border-[#1868F2] border-t-transparent animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full relative overflow-hidden flex items-center justify-center bg-gradient-to-br from-[#E6EBF5] via-[#D8E0F2] to-[#B8C4E6] p-4 sm:p-6 lg:p-8 select-none">

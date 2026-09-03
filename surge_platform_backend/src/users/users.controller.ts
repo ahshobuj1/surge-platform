@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Patch, Post, UseGuards } from "@nestjs/common";
 import { JwtAuthGuard } from "../modules/auth/guards/jwt-auth.guard";
 import { GetUser } from "../modules/auth/decorators/get-user.decorator";
 import { UsersService } from "./users.service";
@@ -21,5 +21,11 @@ export class UsersController {
     @Body() dto: UpdateCurrentUserDto,
   ) {
     return this.usersService.updateMyProfile(userId, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post("me/complete-onboarding")
+  completeOnboarding(@GetUser("userId") userId: string) {
+    return this.usersService.completeOnboarding(userId);
   }
 }

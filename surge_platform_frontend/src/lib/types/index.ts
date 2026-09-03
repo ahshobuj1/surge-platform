@@ -24,6 +24,7 @@ export interface User {
   avatarKey?: string;
   isVerified?: boolean;
   isEmailVerified?: boolean;
+  isOnboarded?: boolean;
   companyId?: string;
   createdAt?: string;
 }
@@ -33,7 +34,7 @@ export interface AuthTokens {
   refreshToken: string;
 }
 
-// Backend login response: { accessToken, refreshToken, isVerified, user: { id, email, role } }
+// Backend login response: { accessToken, refreshToken, isVerified, user: { id, email, role, isOnboarded } }
 export interface LoginResponseData {
   accessToken: string;
   refreshToken: string;
@@ -42,10 +43,11 @@ export interface LoginResponseData {
     id: string;
     email: string;
     role: string;
+    isOnboarded?: boolean;
   };
 }
 
-// Backend verify-email response: { accessToken, refreshToken, user: { id, email, role } }
+// Backend verify-email response: { accessToken, refreshToken, user: { id, email, role, isOnboarded } }
 export interface VerifyEmailResponseData {
   accessToken: string;
   refreshToken?: string;
@@ -53,6 +55,7 @@ export interface VerifyEmailResponseData {
     id: string;
     email: string;
     role: string;
+    isOnboarded?: boolean;
   };
   company?: Company;
   workspace?: Workspace;

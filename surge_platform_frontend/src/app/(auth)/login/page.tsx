@@ -40,6 +40,8 @@ export default function Login() {
       const res = await login(data.email, data.password);
       if (!res.isVerified) {
         router.push(`/verify-otp?email=${encodeURIComponent(data.email)}`);
+      } else if (!res.user.isOnboarded) {
+        router.push("/onboarding");
       } else {
         router.push("/dashboard");
       }

@@ -27,6 +27,7 @@ export class LoginService {
       id: string;
       email: string;
       role: string;
+      isOnboarded: boolean;
     };
   }> {
     if (!identifier) {
@@ -73,6 +74,7 @@ export class LoginService {
         id: user.id,
         email: user.email,
         role: user.role,
+        isOnboarded: user.isOnboarded,
       },
     };
   }

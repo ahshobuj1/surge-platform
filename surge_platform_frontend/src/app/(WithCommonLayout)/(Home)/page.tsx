@@ -1,11 +1,7 @@
-"use client"
-import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import Badge from "../../component/shared/BadgeButton";
 import IntegrationsSection from "../../component/home/IntegrationsSection";
 import FAQSection from "../../component/home/FAQSection";
 import BenefitsSection from "@/app/component/home/BenefitsSection";
@@ -14,14 +10,8 @@ import HowItWorksSection from "@/app/component/home/HowItWorksSection";
 import PricingSection from "@/app/component/home/PricingSection";
 import CTASection from "@/app/component/home/CTASection";
 import FooterSection from "@/app/component/home/FooterSection";
+import { useAuth } from "@/lib/context/AuthContext";
 
-const integrations = ["Semrush", "WordPress", "Webflow", "Google Docs", "Notion", "HubSpot"];
-
-const pricing = [
-  { name: "Basic", price: "$19", users: "2 seats" },
-  { name: "Pro", price: "$49", users: "10 seats", featured: true },
-  { name: "Enterprise", price: "$99", users: "Unlimited seats" },
-];
 const bentoFeatures = [
   {
     title: "RSS Feed Collection",
@@ -48,6 +38,8 @@ const bentoFeatures = [
 
 
 function App() {
+  const { user, isAuthenticated } = useAuth();
+
   return (
     <div className="bg-[#F4F3F0] text-zinc-900 font-mono selection:bg-[#5365D8]/20">
       <header className="fixed inset-x-0 top-0 z-50 bg-[#F4F3F0]/90 backdrop-blur-md border-b border-zinc-200/30">
@@ -82,14 +74,36 @@ function App() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <Link href="/signup">
-              <button
-                type="button"
-                className="bg-[#5365D8] hover:bg-[#4353C4] active:scale-[0.98] text-white text-xs font-semibold rounded-md px-3.5 py-1.5 transition-all shadow-xs cursor-pointer tracking-tight"
-              >
-                Get Started
-              </button>
-            </Link>
+            {isAuthenticated && user ? (
+              <Link href={user.isOnboarded ? "/dashboard" : "/onboarding"}>
+                <button
+                  type="button"
+                  className="flex items-center gap-2 bg-[#5365D8] hover:bg-[#4353C4] active:scale-[0.98] text-white text-xs font-semibold rounded-md px-3.5 py-1.5 transition-all shadow-xs cursor-pointer tracking-tight"
+                >
+                  <div className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center text-[9px] uppercase font-bold text-white">
+                    {user.fullName?.[0] || user.email[0]}
+                  </div>
+                  <span>Dashboard</span>
+                </button>
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="text-xs font-medium text-zinc-600 hover:text-zinc-950 transition-colors tracking-tight mr-1"
+                >
+                  Log In
+                </Link>
+                <Link href="/signup">
+                  <button
+                    type="button"
+                    className="bg-[#5365D8] hover:bg-[#4353C4] active:scale-[0.98] text-white text-xs font-semibold rounded-md px-3.5 py-1.5 transition-all shadow-xs cursor-pointer tracking-tight"
+                  >
+                    Get Started
+                  </button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>

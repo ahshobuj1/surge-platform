@@ -23,6 +23,7 @@ export class UsersService {
         role: true,
         avatarKey: true,
         isVerified: true,
+        isOnboarded: true,
         createdAt: true,
       },
     });
@@ -39,7 +40,44 @@ export class UsersService {
       role: user.role,
       avatarKey: user.avatarKey,
       isVerified: user.isVerified,
+      isOnboarded: user.isOnboarded,
       createdAt: user.createdAt,
+    };
+  }
+
+  async completeOnboarding(userId: string): Promise<{
+    message: string;
+    user: {
+      id: string;
+      fullName: string | null;
+      email: string;
+      phoneNumber: string | null;
+      role: string;
+      avatarKey: string | null;
+      isVerified: boolean;
+      isOnboarded: boolean;
+      createdAt: Date;
+    };
+  }> {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { isOnboarded: true },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phoneNumber: true,
+        role: true,
+        avatarKey: true,
+        isVerified: true,
+        isOnboarded: true,
+        createdAt: true,
+      },
+    });
+
+    return {
+      message: "Onboarding completed successfully",
+      user,
     };
   }
 

@@ -34,10 +34,14 @@ export default function VerifyOtpPage() {
     setErrorMsg("");
     setSuccessMsg("");
     try {
-      await verifyOtp(code);
-      setSuccessMsg("Email verified successfully! Redirecting...");
+      const res = await verifyOtp(code);
+      setSuccessMsg("Email verified successfully! Redirecting to setup...");
       setTimeout(() => {
-        router.push("/profile");
+        if (res.user?.isOnboarded) {
+          router.push("/dashboard");
+        } else {
+          router.push("/onboarding");
+        }
       }, 1000);
     } catch (err: unknown) {
       if (err instanceof ApiError) {

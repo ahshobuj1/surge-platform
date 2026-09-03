@@ -90,7 +90,12 @@ export class RegistrationService {
     return {
       message: "Email verified successfully",
       accessToken,
-      user: { id: user.id, email: user.email, role: user.role },
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        isOnboarded: user.isOnboarded ?? false,
+      },
       company,
       workspace,
     };

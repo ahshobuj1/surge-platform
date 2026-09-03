@@ -19,6 +19,7 @@ interface AuthContextType {
   verifyOtp: (otpCode: string) => Promise<VerifyEmailResponseData>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  completeOnboarding: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -57,8 +58,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    fetchCurrentUser();
-  }, [fetchCurrentUser]);
+    let active = true;
+
+    async function init() {
+      const { accessToken } = getStoredTokens();
+      if (!accessToken) {
+        if (active) setIsLoading(false);
+        return;
+      }
+
+      try {
+        const userData = await api.get<User>("/users/me");
+        if (active) {
+          setUser(userData);
+          try {
+            const companyData = await api.get<Company>("/companies/me");
+            if (active) setCompany(companyData);
+          } catch {
+            // Optional
+          }
+        }
+      } catch (err: unknown) {
+        console.error("Failed to fetch user:", err);
+        clearStoredTokens();
+        if (active) {
+          setUser(null);
+          setCompany(null);
+        }
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    }
+
+    void init();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   /**
    * Login: POST /auth/login
@@ -69,7 +106,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (data.accessToken) {
       setStoredTokens(data.accessToken, data.refreshToken);
-      setUser({ id: data.user.id, email: data.user.email, role: data.user.role });
+      setUser({
+        id: data.user.id,
+        email: data.user.email,
+        role: data.user.role,
+        isOnboarded: data.user.isOnboarded,
+      });
       try {
         const fullUser = await api.get<User>("/users/me");
         setUser(fullUser);
@@ -105,7 +147,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (data.accessToken) {
       setStoredTokens(data.accessToken, data.refreshToken);
-      setUser({ id: data.user.id, email: data.user.email, role: data.user.role });
+      setUser({
+        id: data.user.id,
+        email: data.user.email,
+        role: data.user.role,
+        isOnboarded: data.user.isOnboarded ?? false,
+      });
       try {
         const fullUser = await api.get<User>("/users/me");
         setUser(fullUser);
@@ -114,6 +161,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
     return data;
+  };
+
+  /**
+   * Mark Onboarding complete in backend and local context
+   */
+  const completeOnboarding = async (): Promise<void> => {
+    try {
+      await api.post("/users/me/complete-onboarding");
+    } catch (err: unknown) {
+      console.warn("Could not mark onboarding complete via backend endpoint:", err);
+    }
+    setUser((prev) => (prev ? { ...prev, isOnboarded: true } : null));
   };
 
   /**
@@ -146,6 +205,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         verifyOtp,
         logout,
         refreshUser: fetchCurrentUser,
+        completeOnboarding,
       }}
     >
       {children}
