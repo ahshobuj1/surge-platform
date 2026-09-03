@@ -17,6 +17,7 @@ import {
 import type { Request } from "express";
 import { BillingService } from "./billing.service";
 import { CreateCheckoutSessionDto } from "./dto/create-checkout-session.dto";
+import { ConfirmCheckoutSessionDto } from "./dto/confirm-checkout-session.dto";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../../auth/guards/roles.guard";
 import { Roles } from "../../auth/decorators/roles.decorator";
@@ -50,6 +51,25 @@ export class BillingController {
     @GetUser() user: AuthenticatedUser,
   ) {
     return this.billingService.createCheckoutSession(dto, user);
+  }
+
+  @Post("confirm-session")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin", "customer")
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "Confirm a Stripe Checkout session upon client redirect",
+  })
+  @ApiBody({ type: ConfirmCheckoutSessionDto })
+  @ApiResponse({
+    status: 200,
+    description: "Checkout session confirmed and user onboarded",
+  })
+  confirmSession(
+    @Body() dto: ConfirmCheckoutSessionDto,
+    @GetUser() user: AuthenticatedUser,
+  ) {
+    return this.billingService.confirmSession(dto, user);
   }
 
   @Post("portal")

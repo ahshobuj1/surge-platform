@@ -8,6 +8,7 @@ import { ConfigService } from "@nestjs/config";
 import Stripe from "stripe";
 import { PrismaService } from "../../../common/context/prisma.service";
 import { CreateCheckoutSessionDto } from "./dto/create-checkout-session.dto";
+import { ConfirmCheckoutSessionDto } from "./dto/confirm-checkout-session.dto";
 import {
   getTierConfig,
   normalizeTier,
@@ -139,6 +140,97 @@ export class BillingService {
           : "Failed to initialize Stripe checkout";
       this.logger.error(`Stripe checkout session error: ${message}`);
       throw new BadRequestException(message);
+    }
+  }
+
+  /**
+   * Confirm a Stripe Checkout session upon client redirect and mark user onboarded.
+   */
+  async confirmSession(
+    dto: ConfirmCheckoutSessionDto,
+    user: AuthenticatedUser,
+  ): Promise<{ success: boolean; tier?: string }> {
+    const sessionId = dto.sessionId?.trim();
+    if (!sessionId) {
+      throw new BadRequestException("Session ID is required");
+    }
+
+    try {
+      const session = await this.stripe.checkout.sessions.retrieve(sessionId);
+      if (session) {
+        const companyId =
+          session.client_reference_id || session.metadata?.companyId;
+        const tier = normalizeTier(session.metadata?.tier);
+        const customerId =
+          typeof session.customer === "string"
+            ? session.customer
+            : session.customer?.id;
+
+        const company = companyId
+          ? await this.prisma.company.findUnique({
+              where: { id: companyId },
+              select: { id: true, ownerId: true },
+            })
+          : await this.prisma.company.findFirst({
+              where: { ownerId: user.userId },
+              select: { id: true, ownerId: true },
+            });
+
+        if (company) {
+          if (customerId) {
+            await this.prisma.company.update({
+              where: { id: company.id },
+              data: { stripeCustomerId: customerId, status: "active" },
+            });
+          }
+
+          const tierConfig = getTierConfig(tier);
+          await this.prisma.subscription.upsert({
+            where: { userId: company.ownerId },
+            update: {
+              tier,
+              monthlyPostLimit: tierConfig.monthlyPosts,
+              feedLimit: tierConfig.maxRssSources,
+              status: "ACTIVE",
+            },
+            create: {
+              userId: company.ownerId,
+              tier,
+              monthlyPostLimit: tierConfig.monthlyPosts,
+              feedLimit: tierConfig.maxRssSources,
+              status: "ACTIVE",
+            },
+          });
+
+          await this.prisma.user.update({
+            where: { id: company.ownerId },
+            data: { isOnboarded: true },
+          });
+
+          this.logger.log(
+            `Confirmed Stripe session for user ${company.ownerId} - tier: ${tier}, marked onboarded`,
+          );
+
+          return { success: true, tier };
+        }
+      }
+
+      await this.prisma.user.update({
+        where: { id: user.userId },
+        data: { isOnboarded: true },
+      });
+
+      return { success: true };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Could not confirm Stripe session ${sessionId}: ${msg}`);
+
+      await this.prisma.user.update({
+        where: { id: user.userId },
+        data: { isOnboarded: true },
+      });
+
+      return { success: true };
     }
   }
 
@@ -318,8 +410,13 @@ export class BillingService {
               },
             });
 
+            await this.prisma.user.update({
+              where: { id: company.ownerId },
+              data: { isOnboarded: true },
+            });
+
             this.logger.log(
-              `Upgraded user ${company.ownerId} subscription to ${tier}`,
+              `Upgraded user ${company.ownerId} subscription to ${tier} and marked onboarded`,
             );
           }
         }

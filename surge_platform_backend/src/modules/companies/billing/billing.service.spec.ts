@@ -52,6 +52,9 @@ describe("BillingService", () => {
     publishingChannel: {
       count: jest.Mock;
     };
+    user: {
+      update: jest.Mock;
+    };
   };
   let configService: {
     get: jest.Mock;
@@ -79,6 +82,9 @@ describe("BillingService", () => {
       },
       publishingChannel: {
         count: jest.fn(),
+      },
+      user: {
+        update: jest.fn(),
       },
     };
 

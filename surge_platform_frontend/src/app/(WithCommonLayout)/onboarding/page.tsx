@@ -98,6 +98,8 @@ function OnboardingContent({ onComplete }: OnboardingProps) {
   const { activeWorkspace, workspaces } = useWorkspace();
   const targetWorkspaceId = activeWorkspace?.id || (workspaces.length > 0 ? workspaces[0].id : undefined);
 
+  const ONBOARDING_DRAFT_KEY = "surge_onboarding_draft";
+
   // Onboarding aggregated state
   const [feedUrl, setFeedUrl] = useState<string>("");
   const [feedTitle, setFeedTitle] = useState<string>("");
@@ -110,27 +112,105 @@ function OnboardingContent({ onComplete }: OnboardingProps) {
   const [scheduleData, setScheduleData] = useState<ScheduleData | null>(null);
   const [billingInterval, setBillingInterval] = useState<BillingInterval>("monthly");
 
+  // Hydrate draft from sessionStorage (e.g. after returning from Stripe checkout)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const saved = sessionStorage.getItem(ONBOARDING_DRAFT_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as {
+          feedUrl?: string;
+          feedTitle?: string;
+          preferences?: PreferencesData;
+          connectedPlatforms?: string[];
+          scheduleData?: ScheduleData | null;
+        };
+        if (parsed.feedUrl) setFeedUrl(parsed.feedUrl);
+        if (parsed.feedTitle) setFeedTitle(parsed.feedTitle);
+        if (parsed.preferences) setPreferences(parsed.preferences);
+        if (parsed.connectedPlatforms) setConnectedPlatforms(parsed.connectedPlatforms);
+        if (parsed.scheduleData) setScheduleData(parsed.scheduleData);
+      }
+    } catch {
+      // Ignore storage parse errors
+    }
+  }, []);
+
+  const saveDraftToStorage = (partial: {
+    feedUrl?: string;
+    feedTitle?: string;
+    preferences?: PreferencesData;
+    connectedPlatforms?: string[];
+    scheduleData?: ScheduleData | null;
+  }) => {
+    if (typeof window === "undefined") return;
+    try {
+      const current = sessionStorage.getItem(ONBOARDING_DRAFT_KEY);
+      const parsed = current ? (JSON.parse(current) as Record<string, unknown>) : {};
+      sessionStorage.setItem(
+        ONBOARDING_DRAFT_KEY,
+        JSON.stringify({ ...parsed, ...partial }),
+      );
+    } catch {
+      // Ignore storage errors
+    }
+  };
+
+  // Automatically finalize onboarding and sync Stripe session when on Step 7
+  useEffect(() => {
+    if (currentStep === 7) {
+      void completeOnboarding();
+
+      if (sessionId) {
+        api
+          .post("/companies/billing/confirm-session", { sessionId })
+          .catch((err: unknown) => {
+            console.warn("Could not confirm billing session:", err);
+          });
+      }
+
+      if (targetWorkspaceId && feedUrl) {
+        api
+          .post(`/workspaces/${targetWorkspaceId}/rss-sources`, {
+            feedUrl,
+            name: feedTitle || undefined,
+          })
+          .catch((err: unknown) => {
+            console.warn("Could not automatically create workspace RSS feed:", err);
+          });
+      }
+
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem(ONBOARDING_DRAFT_KEY);
+      }
+    }
+  }, [currentStep, sessionId, targetWorkspaceId, feedUrl, feedTitle, completeOnboarding]);
+
   // Step transitions
   const handleFeedContinue = (feedData?: ValidatedFeedInfo) => {
     if (feedData?.url) {
       setFeedUrl(feedData.url);
       if (feedData.title) setFeedTitle(feedData.title);
+      saveDraftToStorage({ feedUrl: feedData.url, feedTitle: feedData.title || "" });
     }
     navigateToStep(2);
   };
 
   const handlePreferencesContinue = (data: PreferencesData) => {
     setPreferences(data);
+    saveDraftToStorage({ preferences: data });
     navigateToStep(3);
   };
 
   const handlePlatformsContinue = (platformIds: string[]) => {
     setConnectedPlatforms(platformIds);
+    saveDraftToStorage({ connectedPlatforms: platformIds });
     navigateToStep(4);
   };
 
   const handleScheduleComplete = (data: ScheduleData) => {
     setScheduleData(data);
+    saveDraftToStorage({ scheduleData: data });
     navigateToStep(5);
   };
 
@@ -169,6 +249,10 @@ function OnboardingContent({ onComplete }: OnboardingProps) {
       await completeOnboarding();
     } catch (err: unknown) {
       console.warn("Could not mark onboarding complete:", err);
+    }
+
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem(ONBOARDING_DRAFT_KEY);
     }
 
     if (onComplete) {
@@ -273,6 +357,7 @@ function OnboardingContent({ onComplete }: OnboardingProps) {
             connectedPlatforms={connectedPlatforms}
             scheduleData={scheduleData}
             plan={activePlanTier}
+            onComplete={onComplete}
           />
         </Card>
       )}

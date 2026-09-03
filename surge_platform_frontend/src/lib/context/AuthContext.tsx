@@ -169,6 +169,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const completeOnboarding = async (): Promise<void> => {
     try {
       await api.post("/users/me/complete-onboarding");
+      try {
+        const fullUser = await api.get<User>("/users/me");
+        setUser(fullUser);
+        return;
+      } catch {
+        // Fallback to local state update if GET /users/me is delayed
+      }
     } catch (err: unknown) {
       console.warn("Could not mark onboarding complete via backend endpoint:", err);
     }

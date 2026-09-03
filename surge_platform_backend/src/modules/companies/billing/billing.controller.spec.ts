@@ -7,6 +7,7 @@ describe("BillingController", () => {
   let controller: BillingController;
   let billingService: {
     createCheckoutSession: jest.Mock;
+    confirmSession: jest.Mock;
     createPortalSession: jest.Mock;
     getSubscriptionDetails: jest.Mock;
     handleRawWebhook: jest.Mock;
@@ -15,6 +16,7 @@ describe("BillingController", () => {
   beforeEach(async () => {
     billingService = {
       createCheckoutSession: jest.fn(),
+      confirmSession: jest.fn(),
       createPortalSession: jest.fn(),
       getSubscriptionDetails: jest.fn(),
       handleRawWebhook: jest.fn(),

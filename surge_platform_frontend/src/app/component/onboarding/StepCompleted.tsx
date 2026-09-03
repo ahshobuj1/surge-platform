@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -7,11 +8,13 @@ import {
   CheckCircle2,
   Clock,
   Globe,
+  Loader2,
   Palette,
   Rss,
   Sparkles,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/context/AuthContext";
 import { PreferencesData } from "./StepPreferences";
 import { ScheduleData } from "./StepSchedule";
 import { PlanTier } from "./StepPaywall";
@@ -23,6 +26,7 @@ interface StepCompletedProps {
   connectedPlatforms?: string[];
   scheduleData?: ScheduleData | null;
   plan?: PlanTier;
+  onComplete?: () => void;
 }
 
 export function StepCompleted({
@@ -32,8 +36,31 @@ export function StepCompleted({
   connectedPlatforms = [],
   scheduleData,
   plan,
+  onComplete,
 }: StepCompletedProps) {
   const router = useRouter();
+  const { completeOnboarding } = useAuth();
+  const [isLaunching, setIsLaunching] = useState(false);
+
+  useEffect(() => {
+    // Automatically finalize onboarding state in backend upon reaching completion step
+    void completeOnboarding();
+  }, [completeOnboarding]);
+
+  const handleLaunchDashboard = async () => {
+    setIsLaunching(true);
+    try {
+      await completeOnboarding();
+    } catch (err: unknown) {
+      console.warn("Could not mark onboarding complete:", err);
+    }
+
+    if (onComplete) {
+      onComplete();
+    } else {
+      router.push("/dashboard");
+    }
+  };
 
   const isWordpressConnected = connectedPlatforms.includes("wordpress");
   const frequencyLabel = scheduleData?.frequency || "Daily";
@@ -157,11 +184,21 @@ export function StepCompleted({
       <div className="w-full flex justify-center mt-7">
         <Button
           type="button"
-          onClick={() => router.push("/dashboard")}
+          onClick={() => void handleLaunchDashboard()}
+          disabled={isLaunching}
           className="h-12 px-10 rounded-full bg-[#4F62E8] hover:bg-[#4353D3] text-white text-xs font-bold shadow-[0_4px_14px_rgba(79,98,232,0.3)] transition-all cursor-pointer flex items-center gap-2"
         >
-          <span>Launch Dashboard</span>
-          <ArrowRight className="w-4 h-4" />
+          {isLaunching ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Launching Dashboard...</span>
+            </>
+          ) : (
+            <>
+              <span>Launch Dashboard</span>
+              <ArrowRight className="w-4 h-4" />
+            </>
+          )}
         </Button>
       </div>
     </div>

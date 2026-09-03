@@ -3,6 +3,8 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/context/AuthContext";
+import { api } from "@/lib/api";
+import { User } from "@/lib/types";
 import { DashboardSidebar } from "./DashboardSidebar";
 
 export default function DashboardLayout({
@@ -10,18 +12,45 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, refreshUser } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading) {
+    let cancelled = false;
+
+    async function checkAccess() {
+      if (isLoading) return;
+
       if (!isAuthenticated) {
         router.replace("/login");
-      } else if (user && !user.isOnboarded) {
-        router.replace("/onboarding");
+        return;
+      }
+
+      if (user && !user.isOnboarded) {
+        // Double-check with backend in case user was just marked onboarded
+        try {
+          const fresh = await api.get<User>("/users/me");
+          if (!cancelled) {
+            if (fresh?.isOnboarded) {
+              await refreshUser();
+              return;
+            }
+            router.replace("/onboarding");
+          }
+        } catch {
+          if (!cancelled) {
+            router.replace("/onboarding");
+          }
+        }
       }
     }
-  }, [isLoading, isAuthenticated, user, router]);
+
+    void checkAccess();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoading, isAuthenticated, user, router, refreshUser]);
 
   if (isLoading || !isAuthenticated || (user && !user.isOnboarded)) {
     return (
