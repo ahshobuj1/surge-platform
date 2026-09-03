@@ -1,0 +1,7 @@
+info:
+  name: "Module 10: Queue Monitoring (Admin)"
+  type: folder
+  seq: 11
+
+request:
+  auth: inherit

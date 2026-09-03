@@ -1,0 +1,25 @@
+info:
+  name: OAuth Callback
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/publishing-channels/oauth/linkedin/callback?code=sample_code&state=sample_state"
+  params:
+    - name: code
+      value: sample_code
+      type: query
+    - name: state
+      value: sample_state
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: OAuth callback endpoint. Receives authorization code and state, exchanges for tokens, and creates a publishing channel.

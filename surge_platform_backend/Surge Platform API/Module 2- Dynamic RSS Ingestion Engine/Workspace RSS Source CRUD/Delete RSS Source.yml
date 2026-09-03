@@ -1,0 +1,25 @@
+info:
+  name: Delete RSS Source
+  type: http
+  seq: 5
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/workspaces/{{workspaceId}}/rss-sources/{{sourceId}}?force=true"
+  headers:
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  params:
+    - name: force
+      value: "true"
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Delete an RSS source. Pass force=true for hard delete.

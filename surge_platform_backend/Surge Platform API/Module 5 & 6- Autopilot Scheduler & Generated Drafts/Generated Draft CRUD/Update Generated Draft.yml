@@ -1,0 +1,46 @@
+info:
+  name: Update Generated Draft
+  type: http
+  seq: 4
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/generated-drafts/{{generatedDraftId}}"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  body:
+    type: json
+    data: |-
+      {
+        "status": "scheduled",
+        "title": "Updated Draft Title",
+        "blogPostContent": "<p>Updated blog content</p>",
+        "socialPlainText": "Updated social text",
+        "imageUrl": "{{minioAssetUrl}}",
+        "imageProvider": "openai",
+        "hashtags": ["updated", "content"],
+        "seoTitle": "SEO Optimized Title",
+        "metaDescription": "A compelling meta description.",
+        "excerpt": "Short excerpt for cards",
+        "slug": "updated-draft-slug",
+        "rawContent": "<p>Raw written content</p>",
+        "polishedContent": "<p>Polished content</p>",
+        "companySocialPost": "Corporate share copy",
+        "personalSocialPost": "Founder share copy",
+        "imageConcept": "New Yorker cartoon drawing prompt",
+        "negativeConstraints": "color, photo",
+        "imageCaption": "Witty cartoon caption"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Updates a generated draft. Supports action field (approve/reject/save), status transitions, content editing, SEO fields, and image metadata.

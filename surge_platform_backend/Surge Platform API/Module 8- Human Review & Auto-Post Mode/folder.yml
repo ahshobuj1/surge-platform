@@ -1,0 +1,7 @@
+info:
+  name: "Module 8: Human Review & Auto-Post Mode"
+  type: folder
+  seq: 9
+
+request:
+  auth: inherit

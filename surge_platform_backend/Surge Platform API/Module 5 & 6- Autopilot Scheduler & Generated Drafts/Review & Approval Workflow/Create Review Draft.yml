@@ -1,0 +1,35 @@
+info:
+  name: Create Review Draft
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/generated-drafts"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  body:
+    type: json
+    data: |-
+      {
+        "workspaceId": "{{workspaceId}}",
+        "toneProfileId": "{{toneProfileId}}",
+        "socialPlainText": "Draft content for human review.",
+        "blogPostContent": "<p>Draft body for WordPress review mode.</p>",
+        "title": "Review draft for Module 8",
+        "hashtags": ["surge", "review"],
+        "status": "review"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Create a draft in review status for human review workflow.

@@ -1,0 +1,25 @@
+info:
+  name: Delete RSS Feed
+  type: http
+  seq: 5
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/rss-feeds/:id"
+  headers:
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  params:
+    - name: id
+      value: "1"
+      type: path
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Delete an RSS feed record by numeric ID.

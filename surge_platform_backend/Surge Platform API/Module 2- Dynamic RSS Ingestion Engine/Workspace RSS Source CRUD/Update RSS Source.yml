@@ -1,0 +1,30 @@
+info:
+  name: Update RSS Source
+  type: http
+  seq: 4
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/workspaces/{{workspaceId}}/rss-sources/{{sourceId}}"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  body:
+    type: json
+    data: |-
+      {
+        "feedUrl": "https://example.com/feed.xml",
+        "description": "Updated feed description"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Update an RSS source's feed URL or description.

@@ -1,0 +1,30 @@
+info:
+  name: Update Workspace
+  type: http
+  seq: 11
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/workspaces/{{workspaceId}}"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Operations Updated",
+        "timezone": "America/New_York"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Update workspace name, timezone, or other settings.

@@ -1,0 +1,21 @@
+info:
+  name: Retry Failed Queue Job
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/queues/retry/{{failedJobId}}"
+  headers:
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Triggers retry of a specific failed content generation job (Admin Only).

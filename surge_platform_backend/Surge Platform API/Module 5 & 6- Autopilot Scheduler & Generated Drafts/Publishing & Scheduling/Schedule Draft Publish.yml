@@ -1,0 +1,30 @@
+info:
+  name: Schedule Draft Publish
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/generated-drafts/{{generatedDraftId}}/schedule"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  body:
+    type: json
+    data: |-
+      {
+        "scheduledAt": "2026-08-15T09:00:00.000Z",
+        "channels": ["wordpress"]
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Schedule a draft for future publishing at a specific ISO 8601 timestamp.

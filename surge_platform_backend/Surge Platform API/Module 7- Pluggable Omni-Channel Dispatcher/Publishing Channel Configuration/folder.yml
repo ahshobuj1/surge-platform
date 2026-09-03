@@ -1,0 +1,7 @@
+info:
+  name: Publishing Channel Configuration
+  type: folder
+  seq: 1
+
+request:
+  auth: inherit

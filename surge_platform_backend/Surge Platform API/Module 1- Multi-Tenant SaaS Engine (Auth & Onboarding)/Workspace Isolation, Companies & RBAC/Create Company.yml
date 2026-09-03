@@ -1,0 +1,29 @@
+info:
+  name: Create Company
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/companies"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Acme Media Labs"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Create a new company. Requires admin or customer role.

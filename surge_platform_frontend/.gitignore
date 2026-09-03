@@ -1,0 +1,98 @@
+# =========================
+# Node.js
+# =========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+bun.lockb
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# =========================
+# Environment variables
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Logs
+# =========================
+logs/
+*.log
+
+# =========================
+# OS & Editor files
+# =========================
+.DS_Store
+Thumbs.db
+
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# Prisma
+# =========================
+prisma/migrations/
+# (Optional: remove above line if you want to version migrations)
+
+# SQLite (if used)
+*.db
+
+# =========================
+# Docker
+# =========================
+.dockerignore
+docker-compose.override.yml
+
+# =========================
+# Testing
+# =========================
+coverage/
+.nyc_output/
+
+# =========================
+# Cache
+# =========================
+.cache/
+.tmp/
+temp/
+
+# =========================
+# TypeScript
+# =========================
+*.tsbuildinfo
+
+# =========================
+# Misc
+# =========================
+*.pem
+*.key
+*.crt
+
+# =========================
+# Uploads / Static files
+# =========================
+uploads/
+public/uploads/
+
+# =========================
+# MinIO / Storage artifacts
+# =========================
+minio-data/
+
+# =========================
+# Lock files (optional choice)
+# =========================
+# Keep ONE of these depending on your package manager
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

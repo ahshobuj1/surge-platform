@@ -1,0 +1,18 @@
+info:
+  name: Get Publishing Channel By ID
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: "{{baseUrl}}/publishing-channels/{{publishingChannelId}}"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Retrieve a specific publishing channel by ID.

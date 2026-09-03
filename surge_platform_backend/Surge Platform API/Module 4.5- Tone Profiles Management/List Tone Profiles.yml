@@ -1,0 +1,21 @@
+info:
+  name: List Tone Profiles
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/tone-profiles"
+  headers:
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Lists all active tone profiles. Available to admin and customer roles.

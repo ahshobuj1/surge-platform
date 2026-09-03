@@ -1,0 +1,21 @@
+info:
+  name: Delete Generated Draft
+  type: http
+  seq: 5
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/generated-drafts/{{generatedDraftId}}"
+  headers:
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Soft-delete a generated draft.

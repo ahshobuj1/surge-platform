@@ -1,0 +1,7 @@
+info:
+  name: Raw Post Buffer Storage & Historical Window Filtering
+  type: folder
+  seq: 1
+
+request:
+  auth: inherit

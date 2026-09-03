@@ -1,0 +1,7 @@
+info:
+  name: Secure Registration & 2-Step OTP Verification
+  type: folder
+  seq: 2
+
+request:
+  auth: inherit

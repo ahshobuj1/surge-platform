@@ -1,0 +1,11 @@
+info:
+  name: "Module 5 & 6: Autopilot Scheduler & Generated Drafts"
+  type: folder
+  seq: 7
+
+request:
+  auth: inherit
+
+docs:
+  content: Generated draft lifecycle management including creation, review, approval/rejection, publishing, and scheduling. Autopilot queue dispatch validates dispatchable drafts, acquires Redis TTL locks, and forwards to DispatcherService.
+  type: text/markdown

@@ -1,0 +1,23 @@
+info:
+  name: Logout
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/auth/logout"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Logout the current user and invalidate their session.

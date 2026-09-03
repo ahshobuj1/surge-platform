@@ -1,0 +1,33 @@
+info:
+  name: Update Publishing Channel
+  type: http
+  seq: 6
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/publishing-channels/{{publishingChannelId}}"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "platform": "wordpress",
+        "credentials": {
+          "endpoint": "https://example-blog.com/wp-json",
+          "username": "admin",
+          "password": "updated-secret-password"
+        },
+        "isActive": true
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Update a publishing channel's credentials or status.

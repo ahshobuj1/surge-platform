@@ -1,0 +1,31 @@
+info:
+  name: Update Current User Profile
+  type: http
+  seq: 2
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/users/me"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  body:
+    type: json
+    data: |-
+      {
+        "fullName": "Nadib Rana",
+        "phoneNumber": "+8801712345678",
+        "avatarKey": "profiles/user-avatar.png"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Update the currently authenticated user's profile (fullName, phoneNumber, avatarKey).

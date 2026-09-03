@@ -1,0 +1,30 @@
+info:
+  name: Update Queue Config
+  type: http
+  seq: 1
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/workspaces/{{workspaceId}}/queue-config"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  body:
+    type: json
+    data: |-
+      {
+        "fetchFrequencyHours": 6,
+        "postingTimes": ["09:00", "17:00"]
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Update workspace queue configuration including fetch frequency and posting times. Automatically reschedules RSS and Autopilot BullMQ jobs.

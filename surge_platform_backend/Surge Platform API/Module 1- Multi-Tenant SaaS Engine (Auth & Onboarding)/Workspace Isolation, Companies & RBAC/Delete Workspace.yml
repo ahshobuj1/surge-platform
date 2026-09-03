@@ -1,0 +1,21 @@
+info:
+  name: Delete Workspace
+  type: http
+  seq: 12
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/workspaces/{{workspaceId}}"
+  headers:
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Delete a workspace by ID.

@@ -1,0 +1,52 @@
+info:
+  name: Generate Batch Digest
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/ai-prompts/batch-digest"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  body:
+    type: json
+    data: |-
+      {
+        "workspaceId": "{{workspaceId}}",
+        "tone": "confident",
+        "model": "gpt-4o-mini",
+        "limit": 5
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const requestBody = JSON.parse(req.getBody().raw || '{}');
+
+        test('request includes tenant-scoped workspaceId', function () {
+          expect(requestBody.workspaceId, 'workspaceId').to.be.a('string').and.not.empty;
+        });
+
+        test('request includes explicit tone profile name', function () {
+          expect(requestBody.tone, 'tone').to.be.a('string').and.not.empty;
+        });
+
+        test('response confirms asynchronous generation process started', function () {
+          const json = res.getBody();
+          expect(res.getStatus()).to.be.oneOf([200, 201]);
+          expect(json.message).to.eql('Generation process started');
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Generates a batch digest from buffered posts. Driven by system-wide ToneProfile matching the selected tone. Enqueues an async content generation job via BullMQ.

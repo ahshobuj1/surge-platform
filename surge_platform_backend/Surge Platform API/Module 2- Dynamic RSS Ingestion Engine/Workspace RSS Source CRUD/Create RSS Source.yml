@@ -1,0 +1,30 @@
+info:
+  name: Create RSS Source
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/workspaces/{{workspaceId}}/rss-sources"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  body:
+    type: json
+    data: |-
+      {
+        "feedUrl": "https://techcrunch.com/feed/",
+        "description": "Tech news feed"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Add a new RSS source to a workspace.

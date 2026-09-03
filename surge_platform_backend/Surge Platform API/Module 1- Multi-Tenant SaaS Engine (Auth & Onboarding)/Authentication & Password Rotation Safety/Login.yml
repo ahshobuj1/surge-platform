@@ -1,0 +1,40 @@
+info:
+  name: Login
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/auth/login"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "email": "user@example.com",
+        "password": "secret123"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const json = res.getBody();
+        if (json && json.data && json.data.accessToken) {
+          bru.setCollectionVar('jwtToken', json.data.accessToken);
+        }
+        if (json && json.data && json.data.refreshToken) {
+          bru.setCollectionVar('refreshToken', json.data.refreshToken);
+        }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Login with email or phone + password. Returns access and refresh tokens.

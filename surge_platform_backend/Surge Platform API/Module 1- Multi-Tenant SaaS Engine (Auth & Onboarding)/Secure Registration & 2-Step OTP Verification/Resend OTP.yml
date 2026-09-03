@@ -1,0 +1,27 @@
+info:
+  name: Resend OTP
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/auth/resend-otp"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "email": "user@example.com"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Resend OTP verification email. Rate limited to 3 requests per 60 seconds.

@@ -1,0 +1,48 @@
+info:
+  name: Create Generated Draft
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/generated-drafts"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  body:
+    type: json
+    data: |-
+      {
+        "workspaceId": "{{workspaceId}}",
+        "rawPostId": "{{rawPostId}}",
+        "toneProfileId": "{{toneProfileId}}",
+        "socialPlainText": "Check out this article: https://techcrunch.com/some-article",
+        "imageUrl": "{{minioAssetUrl}}",
+        "imageProvider": "openai",
+        "generationType": "manual_on_demand",
+        "status": "approved",
+        "title": "AI Generated Draft",
+        "blogPostContent": "<p>Full blog post content here.</p>",
+        "hashtags": ["surge", "ai", "content"]
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const json = res.getBody();
+        if (json && json.data && json.data.id) {
+          bru.setCollectionVar('generatedDraftId', json.data.id);
+        }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Creates a new generated draft. Requires JWT authentication. Body matches CreateGeneratedDraftDto with all optional fields.

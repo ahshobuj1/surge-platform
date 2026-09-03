@@ -1,0 +1,59 @@
+info:
+  name: Create Tone Profile
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/tone-profiles"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  body:
+    type: json
+    data: |-
+      {
+        "name": "confident-postman",
+        "stepGroupingPrompt": {
+          "title": "Grouping Prompt",
+          "systemPrompt": "You are an Article Grouping Bot.",
+          "template": "Analyze these articles and group them."
+        },
+        "stepOneRawDraftPrompt": {
+          "title": "Step 1 Draft Prompt",
+          "systemPrompt": "System prompt instruction",
+          "template": "Template context: {{articleContext}}"
+        },
+        "stepTwoPolishingPrompt": {
+          "title": "Step 2 Polish Prompt",
+          "systemPrompt": "System prompt instruction",
+          "template": "Template context: {{blogPostContent}}"
+        },
+        "stepThreeImagePrompt": {
+          "title": "Step 3 Image Prompt",
+          "systemPrompt": "System prompt instruction",
+          "template": "Template context: {{blogPostContent}}"
+        },
+        "stepCompanySocialPrompt": {
+          "title": "Company Social Prompt",
+          "systemPrompt": "System prompt instruction",
+          "template": "Template context: {{blogPostContent}}"
+        },
+        "stepPersonalSocialPrompt": {
+          "title": "Personal Social Prompt",
+          "systemPrompt": "System prompt instruction",
+          "template": "Template context: {{blogPostContent}}"
+        }
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Creates a new tone profile along with its six step prompts (Admin Only).

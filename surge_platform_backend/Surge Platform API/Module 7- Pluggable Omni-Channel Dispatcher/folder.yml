@@ -1,0 +1,7 @@
+info:
+  name: "Module 7: Pluggable Omni-Channel Dispatcher"
+  type: folder
+  seq: 8
+
+request:
+  auth: inherit

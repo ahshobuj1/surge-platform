@@ -1,0 +1,22 @@
+info:
+  name: List Publishing Channels
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: "{{baseUrl}}/publishing-channels?workspaceId={{workspaceId}}"
+  params:
+    - name: workspaceId
+      value: "{{workspaceId}}"
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: List publishing channels, optionally filtered by workspaceId.

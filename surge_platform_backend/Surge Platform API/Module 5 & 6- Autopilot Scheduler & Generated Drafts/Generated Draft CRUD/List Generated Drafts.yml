@@ -1,0 +1,33 @@
+info:
+  name: List Generated Drafts
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/generated-drafts?workspaceId={{workspaceId}}"
+  headers:
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  params:
+    - name: workspaceId
+      value: "{{workspaceId}}"
+      type: query
+    - name: status
+      value: approved
+      type: query
+      disabled: true
+    - name: includeDeleted
+      value: "false"
+      type: query
+      disabled: true
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: "Lists generated drafts. Admins can omit workspaceId to see all; workspace users scope by workspaceId. Optional query filters: status, includeDeleted."

@@ -1,0 +1,40 @@
+info:
+  name: Publish Dispatch - WordPress
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/workspaces/{{workspaceId}}/dispatcher/publish"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  body:
+    type: json
+    data: |-
+      {
+        "channel": "wordpress",
+        "title": "AI Daily Digest: Top Stories",
+        "content": "<h1>Today's Highlights</h1><p>Automated digest content goes here.</p>",
+        "images": ["https://images.example.com/ai-generated-1.jpg"],
+        "credentials": {
+          "apiUrl": "https://example.com",
+          "accessToken": "wp_token_here",
+          "target": ""
+        },
+        "metadata": {
+          "status": "publish"
+        }
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Dispatch a publish request to WordPress channel. Credentials include apiUrl and accessToken.

@@ -1,0 +1,11 @@
+info:
+  name: "Module 2.5: RSS Feeds Management (Internal)"
+  type: folder
+  seq: 3
+
+request:
+  auth: inherit
+
+docs:
+  content: Low-level RSS feed CRUD. These are the underlying RssFeed records stored in the database, as opposed to workspace-scoped rss-sources. Primarily used for internal admin operations.
+  type: text/markdown

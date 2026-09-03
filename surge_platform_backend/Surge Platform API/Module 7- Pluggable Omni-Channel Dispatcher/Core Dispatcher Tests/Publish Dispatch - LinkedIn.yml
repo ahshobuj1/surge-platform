@@ -1,0 +1,39 @@
+info:
+  name: Publish Dispatch - LinkedIn
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/workspaces/{{workspaceId}}/dispatcher/publish"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  body:
+    type: json
+    data: |-
+      {
+        "channel": "linkedin",
+        "title": "AI Daily Digest: LinkedIn Edition",
+        "content": "Automated LinkedIn post content goes here.",
+        "images": ["https://images.example.com/linkedin-cover.jpg"],
+        "credentials": {
+          "accessToken": "linkedin_token_here",
+          "target": "urn:li:person:xxxx"
+        },
+        "metadata": {
+          "status": "publish"
+        }
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Dispatch a publish request to LinkedIn channel. Target is the LinkedIn person or organization URN.

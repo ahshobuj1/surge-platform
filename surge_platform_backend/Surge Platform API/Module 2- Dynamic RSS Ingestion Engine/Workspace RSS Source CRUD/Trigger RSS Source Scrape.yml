@@ -1,0 +1,21 @@
+info:
+  name: Trigger RSS Source Scrape
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: "{{baseUrl}}/workspaces/{{workspaceId}}/rss-sources/{{sourceId}}/scrape"
+  headers:
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Manually trigger an immediate RSS scrape for a specific source. Bypasses the BullMQ schedule and runs the scrape synchronously.

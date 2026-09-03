@@ -1,0 +1,29 @@
+info:
+  name: Publish Draft Now
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/generated-drafts/{{generatedDraftId}}/publish"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  body:
+    type: json
+    data: |-
+      {
+        "channels": ["wordpress", "linkedin"]
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Publish a draft immediately to specified channels.

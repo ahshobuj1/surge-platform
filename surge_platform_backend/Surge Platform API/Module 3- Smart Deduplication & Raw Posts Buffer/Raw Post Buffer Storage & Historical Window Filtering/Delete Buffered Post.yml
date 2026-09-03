@@ -1,0 +1,21 @@
+info:
+  name: Delete Buffered Post
+  type: http
+  seq: 4
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/workspaces/{{workspaceId}}/buffer-posts/{{bufferPostId}}"
+  headers:
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Delete a buffered post from the workspace.

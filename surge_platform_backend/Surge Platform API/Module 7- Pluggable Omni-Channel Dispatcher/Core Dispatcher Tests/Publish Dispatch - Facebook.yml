@@ -1,0 +1,39 @@
+info:
+  name: Publish Dispatch - Facebook
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/workspaces/{{workspaceId}}/dispatcher/publish"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  body:
+    type: json
+    data: |-
+      {
+        "channel": "facebook",
+        "title": "AI Daily Digest: Facebook Edition",
+        "content": "Automated Facebook post content goes here.",
+        "images": ["https://images.example.com/facebook-cover.jpg"],
+        "credentials": {
+          "accessToken": "facebook_token_here",
+          "target": "1234567890"
+        },
+        "metadata": {
+          "status": "publish"
+        }
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Dispatch a publish request to Facebook channel. Target is the Facebook page ID.

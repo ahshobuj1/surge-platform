@@ -1,0 +1,7 @@
+info:
+  name: "Module 4: AI Creative Engine & Asset Pipeline"
+  type: folder
+  seq: 5
+
+request:
+  auth: inherit

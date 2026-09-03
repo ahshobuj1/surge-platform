@@ -1,0 +1,53 @@
+services:
+    postgres:
+        image: postgres:17
+        container_name: surge_platform_postgres
+        restart: unless-stopped
+        environment:
+            POSTGRES_USER: surge_platform_user
+            POSTGRES_PASSWORD: surge_platform_password
+            POSTGRES_DB: surge_platform_db
+        ports:
+            - '5437:5432'
+        volumes:
+            - surge_platform_data:/var/lib/postgresql/data
+        networks:
+            - surge_platform_network
+
+    redis:
+        image: redis:alpine
+        container_name: surge_platform_redis
+        restart: unless-stopped
+        ports:
+            - '6381:6379'
+        networks:
+            - surge_platform_network
+
+    minio:
+        image: minio/minio:latest
+        container_name: surge_platform_minio
+        restart: unless-stopped
+        environment:
+            MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+            MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+        command: server /data --console-address ":9001"
+        ports:
+            - '9010:9000'
+            - '9011:9001'
+        volumes:
+            - minio_data:/data
+        networks:
+            - surge_platform_network
+
+networks:
+    surge_platform_network:
+        driver: bridge
+        name: surge_platform_network
+
+volumes:
+    surge_platform_data:
+        driver: local
+        name: surge_platform_data
+    minio_data:
+        driver: local
+        name: minio_data

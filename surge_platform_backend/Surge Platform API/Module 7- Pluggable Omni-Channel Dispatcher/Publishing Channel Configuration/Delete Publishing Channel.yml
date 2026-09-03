@@ -1,0 +1,18 @@
+info:
+  name: Delete Publishing Channel
+  type: http
+  seq: 7
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/publishing-channels/{{publishingChannelId}}"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Delete a publishing channel.

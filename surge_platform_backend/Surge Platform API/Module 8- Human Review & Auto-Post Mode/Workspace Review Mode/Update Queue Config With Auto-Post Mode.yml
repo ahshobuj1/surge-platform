@@ -1,0 +1,31 @@
+info:
+  name: Update Queue Config With Auto-Post Mode
+  type: http
+  seq: 1
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/workspaces/{{workspaceId}}/queue-config"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  body:
+    type: json
+    data: |-
+      {
+        "fetchFrequencyHours": 6,
+        "postingTimes": ["09:00", "17:00"],
+        "autoPost": false
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Turns the workspace into review-first mode. Set autoPost=true to skip review and let drafts publish automatically.

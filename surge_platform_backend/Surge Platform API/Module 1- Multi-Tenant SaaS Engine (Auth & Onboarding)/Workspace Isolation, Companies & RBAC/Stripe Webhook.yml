@@ -1,0 +1,35 @@
+info:
+  name: Stripe Webhook
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: "{{baseUrl}}/companies/billing/webhook"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "type": "checkout.session.completed",
+        "data": {
+          "object": {
+            "client_reference_id": "{{companyId}}",
+            "metadata": {
+              "tier": "pro"
+            }
+          }
+        }
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Stripe webhook endpoint for billing events.

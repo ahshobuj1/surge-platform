@@ -1,0 +1,7 @@
+info:
+  name: "Module 1: Multi-Tenant SaaS Engine (Auth & Onboarding)"
+  type: folder
+  seq: 1
+
+request:
+  auth: inherit

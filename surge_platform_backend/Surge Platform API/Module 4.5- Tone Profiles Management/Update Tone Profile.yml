@@ -1,0 +1,33 @@
+info:
+  name: Update Tone Profile
+  type: http
+  seq: 4
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/tone-profiles/{{toneProfileId}}"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  body:
+    type: json
+    data: |-
+      {
+        "name": "confident-postman-updated",
+        "stepOneRawDraftPrompt": {
+          "title": "Updated Step 1",
+          "systemPrompt": "Updated system prompt"
+        }
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Updates a tone profile and/or its step prompts (Admin Only). Partial updates supported.

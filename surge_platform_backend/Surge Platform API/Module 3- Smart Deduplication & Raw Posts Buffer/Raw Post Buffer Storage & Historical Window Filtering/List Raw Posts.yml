@@ -1,0 +1,21 @@
+info:
+  name: List Raw Posts
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: "{{baseUrl}}/raw-posts"
+  headers:
+    - name: Authorization
+      value: Bearer {{jwtToken}}
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: List all raw posts (last 3 days window).

@@ -1,0 +1,7 @@
+info:
+  name: "Module 4.5: Tone Profiles Management"
+  type: folder
+  seq: 6
+
+request:
+  auth: inherit
