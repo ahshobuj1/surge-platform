@@ -3,16 +3,18 @@
 import { Suspense, useState } from "react";
 import AppButton from "@/app/component/shared/AppButton";
 import OtpInput from "@/app/component/auth/OtpInput";
-import ZerodraftLogo from "@/app/component/shared/ZeroDraftLogo";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/context/AuthContext";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 
-function VerifyOtpContent() {
-  const router = useRouter();
+function EmailQueryText() {
   const searchParams = useSearchParams();
-  const email = searchParams.get("email") || "";
+  const email = searchParams?.get("email") || "";
+  return <span>{email || "your registered email"}</span>;
+}
+
+export default function VerifyOtpPage() {
+  const router = useRouter();
   const { verifyOtp } = useAuth();
 
   const [otp, setOtp] = useState("");
@@ -21,9 +23,10 @@ function VerifyOtpContent() {
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
-  const handleVerify = async () => {
-    if (otp.length < 6) {
-      setErrorMsg("Please enter the full 6-digit OTP code.");
+  const handleVerify = async (codeToVerify?: string) => {
+    const code = (codeToVerify || otp).trim();
+    if (code.length < 6) {
+      setErrorMsg("Please enter the full 6-digit verification code.");
       return;
     }
 
@@ -31,20 +34,38 @@ function VerifyOtpContent() {
     setErrorMsg("");
     setSuccessMsg("");
     try {
-      // Backend VerifyTokenDto only accepts { token } — the 6-digit OTP code
-      await verifyOtp(otp);
-      setSuccessMsg("Email verified successfully! Redirecting to setup wizard...");
+      await verifyOtp(code);
+      setSuccessMsg("Email verified successfully! Redirecting...");
       setTimeout(() => {
         router.push("/profile");
       }, 1000);
-    } catch (err: any) {
-      setErrorMsg(err.message || "Invalid OTP code. Please try again.");
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        setErrorMsg(err.message);
+      } else if (err instanceof Error) {
+        setErrorMsg(err.message);
+      } else {
+        setErrorMsg("Invalid OTP code. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  const handleOtpChange = (value: string) => {
+    setOtp(value);
+    setErrorMsg("");
+    if (value.length === 6) {
+      handleVerify(value);
+    }
+  };
+
   const handleResend = async () => {
+    let email = "";
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      email = params.get("email") || "";
+    }
     if (!email) {
       setErrorMsg("Email address missing. Please go back to login.");
       return;
@@ -53,78 +74,74 @@ function VerifyOtpContent() {
     setErrorMsg("");
     setSuccessMsg("");
     try {
-      // Backend ResendOtpDto accepts { email }
       await api.post("/auth/resend-otp", { email });
       setSuccessMsg("A new verification code has been sent to your email.");
-    } catch (err: any) {
-      setErrorMsg(err.message || "Failed to resend OTP code.");
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        setErrorMsg(err.message);
+      } else if (err instanceof Error) {
+        setErrorMsg(err.message);
+      } else {
+        setErrorMsg("Failed to resend verification code.");
+      }
     } finally {
       setResending(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-4 bg-slate-50/50">
-      <ZerodraftLogo />
-      <Card className="w-full max-w-md border border-slate-200 bg-white shadow-xl rounded-2xl">
-        <CardHeader className="pb-2 pt-8 text-center">
-          <CardTitle className="text-2xl font-bold text-slate-900">
-            Check your email
-          </CardTitle>
-          <p className="text-sm text-slate-600 mt-2">
-            Enter the 6-digit verification code sent to
-            <br />
-            <span className="font-semibold text-slate-900">
-              {email || "your registered email"}
-            </span>
-          </p>
-        </CardHeader>
+    <div className="w-full bg-white rounded-[28px] border border-white/80 p-8 sm:p-9 shadow-[0_20px_50px_-15px_rgba(79,90,140,0.18)]">
+      <h1 className="text-center text-xl sm:text-2xl font-bold text-slate-900 tracking-tight mb-2">
+        Check your email
+      </h1>
 
-        <CardContent className="px-8 pb-8 space-y-6">
-          {errorMsg && (
-            <div className="p-3 text-sm text-red-700 bg-red-50 rounded-lg border border-red-200">
-              {errorMsg}
-            </div>
-          )}
-          {successMsg && (
-            <div className="p-3 text-sm text-emerald-700 bg-emerald-50 rounded-lg border border-emerald-200">
-              {successMsg}
-            </div>
-          )}
+      <p className="text-center text-xs sm:text-[13px] text-slate-500 mb-6 leading-relaxed">
+        Please enter the 6-digit code we sent to{" "}
+        <span className="font-semibold text-slate-700">
+          <Suspense fallback={<span>your registered email</span>}>
+            <EmailQueryText />
+          </Suspense>
+        </span>
+      </p>
 
-          <div className="flex justify-center py-2">
-            <OtpInput onChange={setOtp} />
-          </div>
+      {errorMsg && (
+        <div className="mb-4 p-3 text-xs text-red-600 bg-red-50 rounded-2xl border border-red-200 text-center animate-in fade-in duration-200">
+          {errorMsg}
+        </div>
+      )}
 
-          <AppButton type="button" onClick={handleVerify} disabled={loading} className="w-full">
-            {loading ? "Verifying..." : "Verify Code"}
-          </AppButton>
+      {successMsg && (
+        <div className="mb-4 p-3 text-xs text-emerald-600 bg-emerald-50 rounded-2xl border border-emerald-200 text-center animate-in fade-in duration-200">
+          {successMsg}
+        </div>
+      )}
 
-          <p className="text-center text-sm text-slate-500">
-            Didn&apos;t receive code?{" "}
-            <button
-              type="button"
-              onClick={handleResend}
-              disabled={resending}
-              className="text-indigo-600 font-medium hover:underline disabled:opacity-50"
-            >
-              {resending ? "Resending..." : "Resend"}
-            </button>
-          </p>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-export default function VerifyOtpPage() {
-  return (
-    <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-slate-500">Loading...</p>
+      <div className="py-2">
+        <OtpInput onChange={handleOtpChange} disabled={loading} />
       </div>
-    }>
-      <VerifyOtpContent />
-    </Suspense>
+
+      <div className="pt-4">
+        <AppButton
+          type="button"
+          onClick={() => handleVerify()}
+          disabled={loading || otp.length < 6}
+          className="w-full"
+        >
+          {loading ? "Verifying..." : "Verify Code"}
+        </AppButton>
+      </div>
+
+      <p className="text-center text-xs sm:text-[13px] text-slate-500 pt-4">
+        Didn&apos;t receive code?{" "}
+        <button
+          type="button"
+          onClick={handleResend}
+          disabled={resending || loading}
+          className="text-[#4F62E8] font-semibold hover:underline disabled:opacity-50"
+        >
+          {resending ? "Resending..." : "Resend"}
+        </button>
+      </p>
+    </div>
   );
 }

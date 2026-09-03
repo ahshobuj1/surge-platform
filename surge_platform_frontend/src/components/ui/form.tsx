@@ -9,21 +9,31 @@ import {
   FieldValues,
   Path,
   UseFormReturn,
+  Control,
 } from "react-hook-form";
 import { cn } from "@/lib/utils";
 
 // Allow spreading the useForm() return directly: <Form {...form}>
-export function Form<TFormValues extends FieldValues>({ children, ...props }: any) {
+export function Form<TFormValues extends FieldValues>({
+  children,
+  ...props
+}: UseFormReturn<TFormValues> & { children: React.ReactNode }) {
   return <FormProvider {...props}>{children}</FormProvider>;
 }
 
-type FormFieldProps<TFormValues extends FieldValues, TName extends Path<TFormValues>> = {
+type FormFieldProps<
+  TFormValues extends FieldValues,
+  TName extends Path<TFormValues> = Path<TFormValues>,
+> = {
   name: TName;
-  control?: any;
+  control?: Control<TFormValues>;
   render: ControllerProps<TFormValues, TName>["render"];
 };
 
-export function FormField<TFormValues extends FieldValues, TName extends Path<TFormValues>>({
+export function FormField<
+  TFormValues extends FieldValues,
+  TName extends Path<TFormValues> = Path<TFormValues>,
+>({
   name,
   control,
   render,
@@ -41,21 +51,22 @@ export function FormItem({ className, children, ...props }: React.HTMLAttributes
   );
 }
 
-export function FormLabel({ className, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
-  return <label className={cn("text-sm font-medium", className)} {...props} />;
+export function FormControl({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div {...props}>{children}</div>;
 }
 
-export function FormControl({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+export function FormLabel({ className, children, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
   return (
-    <div className={cn("", className)} {...props}>
+    <label className={cn("text-xs font-mono text-muted-foreground uppercase tracking-wider", className)} {...props}>
       {children}
-    </div>
+    </label>
   );
 }
 
-export function FormMessage({ children, className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
+export function FormMessage({ className, children, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
+  if (!children) return null;
   return (
-    <p className={cn("text-xs text-red-500", className)} {...props}>
+    <p className={cn("text-xs text-destructive font-mono", className)} {...props}>
       {children}
     </p>
   );

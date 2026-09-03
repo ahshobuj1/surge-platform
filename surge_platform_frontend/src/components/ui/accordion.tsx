@@ -5,10 +5,20 @@ import { Accordion as AccordionPrimitive } from "@base-ui/react/accordion"
 import { cn } from "@/lib/utils"
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react"
 
-function Accordion({ className, ...props }: AccordionPrimitive.Root.Props) {
+function Accordion({
+  className,
+  type,
+  collapsible: _collapsible,
+  multiple,
+  ...props
+}: AccordionPrimitive.Root.Props & {
+  type?: "single" | "multiple" | string;
+  collapsible?: boolean;
+}) {
   return (
     <AccordionPrimitive.Root
       data-slot="accordion"
+      multiple={multiple ?? (type === "multiple")}
       className={cn("flex w-full flex-col", className)}
       {...props}
     />

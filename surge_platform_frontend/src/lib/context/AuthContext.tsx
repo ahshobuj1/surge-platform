@@ -1,8 +1,13 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { User, Company, LoginResponseData, VerifyEmailResponseData } from "../types";
 import { api, getStoredTokens, setStoredTokens, clearStoredTokens } from "../api";
+
+export interface SignupResponseData {
+  message: string;
+  otpFallback?: boolean;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -10,7 +15,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<LoginResponseData>;
-  signup: (email: string, password: string, name?: string) => Promise<any>;
+  signup: (email: string, password: string, name?: string) => Promise<SignupResponseData>;
   verifyOtp: (otpCode: string) => Promise<VerifyEmailResponseData>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -23,7 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [company, setCompany] = useState<Company | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const fetchCurrentUser = async () => {
+  const fetchCurrentUser = useCallback(async () => {
     const { accessToken } = getStoredTokens();
     if (!accessToken) {
       setUser(null);
@@ -41,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch {
         // Company fetch optional
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Failed to fetch user:", err);
       clearStoredTokens();
       setUser(null);
@@ -49,11 +54,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchCurrentUser();
-  }, []);
+  }, [fetchCurrentUser]);
 
   /**
    * Login: POST /auth/login
@@ -78,13 +83,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   /**
    * Signup: POST /auth/register
    */
-  const signup = async (email: string, password: string, name?: string) => {
+  const signup = async (
+    email: string,
+    password: string,
+    name?: string
+  ): Promise<SignupResponseData> => {
     const payload: Record<string, string> = { email, password };
     if (name && name.trim()) {
       payload.fullName = name.trim();
       payload.name = name.trim();
     }
-    return await api.post("/auth/register", payload);
+    return await api.post<SignupResponseData>("/auth/register", payload);
   };
 
   /**
@@ -113,7 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       await api.post("/auth/logout");
-    } catch (err) {
+    } catch {
       // Ignore logout errors
     } finally {
       clearStoredTokens();

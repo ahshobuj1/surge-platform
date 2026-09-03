@@ -1,42 +1,61 @@
 import { ApiResponse } from './types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3030';
+
+export interface BackendErrorItem {
+  code?: string;
+  message?: string;
+  field?: string;
+}
+
+export interface BackendErrorResponse {
+  success?: boolean;
+  statusCode?: number;
+  message?: string;
+  errors?: BackendErrorItem[];
+  isVerified?: boolean;
+  [key: string]: unknown;
+}
 
 export class ApiError extends Error {
   statusCode: number;
-  data?: any;
+  data?: unknown;
+  isVerified?: boolean;
 
-  constructor(message: string, statusCode: number, data?: any) {
+  constructor(message: string, statusCode: number, data?: unknown) {
     super(message);
     this.name = 'ApiError';
     this.statusCode = statusCode;
     this.data = data;
+    if (typeof data === 'object' && data !== null && 'isVerified' in data) {
+      this.isVerified = Boolean((data as { isVerified?: boolean }).isVerified);
+    }
   }
 }
 
-export function getStoredTokens() {
+export function getStoredTokens(): { accessToken: string | null; refreshToken: string | null } {
   if (typeof window === 'undefined') return { accessToken: null, refreshToken: null };
   const accessToken = localStorage.getItem('accessToken');
   const refreshToken = localStorage.getItem('refreshToken');
   return { accessToken, refreshToken };
 }
 
-export function setStoredTokens(accessToken: string, refreshToken: string) {
+export function setStoredTokens(accessToken: string, refreshToken?: string | null): void {
   if (typeof window === 'undefined') return;
-  localStorage.setItem('accessToken', accessToken);
-  localStorage.setItem('refreshToken', refreshToken);
+  if (accessToken) localStorage.setItem('accessToken', accessToken);
+  if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
 }
 
-export function clearStoredTokens() {
+export function clearStoredTokens(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
 }
 
 let isRefreshing = false;
-let failedQueue: Array<{ resolve: (value?: any) => void; reject: (reason?: any) => void }> = [];
+let failedQueue: Array<{ resolve: (value?: string | null) => void; reject: (reason?: unknown) => void }> = [];
 
-function processQueue(error: any, token: string | null = null) {
+function processQueue(error: unknown, token: string | null = null): void {
   failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
@@ -47,7 +66,7 @@ function processQueue(error: any, token: string | null = null) {
   failedQueue = [];
 }
 
-export async function request<T = any>(
+export async function request<T = unknown>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
@@ -83,7 +102,7 @@ export async function request<T = any>(
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ refreshToken }),
             });
-            const refreshData: ApiResponse = await refreshRes.json();
+            const refreshData = (await refreshRes.json()) as ApiResponse<{ accessToken?: string; refreshToken?: string }>;
 
             if (refreshData.success && refreshData.data?.accessToken) {
               setStoredTokens(refreshData.data.accessToken, refreshData.data.refreshToken || refreshToken);
@@ -93,7 +112,7 @@ export async function request<T = any>(
               // Retry original request
               headers.set('Authorization', `Bearer ${refreshData.data.accessToken}`);
               const retryResponse = await fetch(url, { ...config, headers });
-              const retryJson: ApiResponse<T> = await retryResponse.json();
+              const retryJson = (await retryResponse.json()) as ApiResponse<T>;
               if (!retryResponse.ok || !retryJson.success) {
                 throw new ApiError(retryJson.message || 'API request failed', retryResponse.status, retryJson);
               }
@@ -104,7 +123,7 @@ export async function request<T = any>(
               processQueue(new Error('Token refresh failed'));
               if (typeof window !== 'undefined') window.location.href = '/login';
             }
-          } catch (refreshErr) {
+          } catch (refreshErr: unknown) {
             clearStoredTokens();
             isRefreshing = false;
             processQueue(refreshErr);
@@ -113,12 +132,14 @@ export async function request<T = any>(
           }
         } else {
           // Wait for token refresh queue
-          return new Promise((resolve, reject) => {
+          return new Promise<string | null | undefined>((resolve, reject) => {
             failedQueue.push({ resolve, reject });
           }).then((newAccessToken) => {
-            headers.set('Authorization', `Bearer ${newAccessToken}`);
+            if (newAccessToken) {
+              headers.set('Authorization', `Bearer ${newAccessToken}`);
+            }
             return fetch(url, { ...config, headers }).then(async (res) => {
-              const json: ApiResponse<T> = await res.json();
+              const json = (await res.json()) as ApiResponse<T>;
               if (!res.ok || !json.success) {
                 throw new ApiError(json.message || 'API request failed', res.status, json);
               }
@@ -129,41 +150,56 @@ export async function request<T = any>(
       }
     }
 
-    const data: ApiResponse<T> = await response.json();
+    let data: (ApiResponse<T> & BackendErrorResponse) | null = null;
+    try {
+      data = (await response.json()) as ApiResponse<T> & BackendErrorResponse;
+    } catch {
+      data = null;
+    }
 
     if (!response.ok || (data && data.success === false)) {
+      let errorMsg = data?.message;
+      if (Array.isArray(data?.errors) && data.errors.length > 0) {
+        const details = data.errors
+          .map((e) => e.message || e.code)
+          .filter(Boolean);
+        if (details.length > 0) {
+          errorMsg = details.join('. ');
+        }
+      }
       throw new ApiError(
-        data.message || `Request failed with status ${response.status}`,
+        errorMsg || `Request failed with status ${response.status}`,
         response.status,
         data
       );
     }
 
-    return data.data !== undefined ? data.data : (data as unknown as T);
-  } catch (err: any) {
+    return data?.data !== undefined ? data.data : (data as unknown as T);
+  } catch (err: unknown) {
     if (err instanceof ApiError) throw err;
-    throw new ApiError(err.message || 'Network error', 500);
+    const msg = err instanceof Error ? err.message : 'Network error';
+    throw new ApiError(msg, 500);
   }
 }
 
 export const api = {
-  get: <T = any>(endpoint: string, options?: RequestInit) =>
+  get: <T = unknown>(endpoint: string, options?: RequestInit) =>
     request<T>(endpoint, { ...options, method: 'GET' }),
 
-  post: <T = any>(endpoint: string, body?: any, options?: RequestInit) =>
+  post: <T = unknown>(endpoint: string, body?: unknown, options?: RequestInit) =>
     request<T>(endpoint, {
       ...options,
       method: 'POST',
       body: body instanceof FormData ? body : JSON.stringify(body),
     }),
 
-  patch: <T = any>(endpoint: string, body?: any, options?: RequestInit) =>
+  patch: <T = unknown>(endpoint: string, body?: unknown, options?: RequestInit) =>
     request<T>(endpoint, {
       ...options,
       method: 'PATCH',
       body: body instanceof FormData ? body : JSON.stringify(body),
     }),
 
-  delete: <T = any>(endpoint: string, options?: RequestInit) =>
+  delete: <T = unknown>(endpoint: string, options?: RequestInit) =>
     request<T>(endpoint, { ...options, method: 'DELETE' }),
 };

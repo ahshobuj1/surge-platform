@@ -6,12 +6,14 @@ import {
   buildPasswordResetEmailContent,
   extractOtpFromText,
 } from "./mailtrap-templates.util";
+import * as https from "https";
 
 @Injectable()
 export class MailtrapService {
   private token = "";
   private fromEmail = "";
   private fromName = "";
+  private inboxId = "";
   private readonly logger = new Logger(MailtrapService.name);
 
   constructor(private configService: ConfigService) {
@@ -23,15 +25,57 @@ export class MailtrapService {
       this.configService.get<string>("MAILTRAP_TOKEN")?.trim() || "";
     this.fromEmail =
       this.configService.get<string>("MAILTRAP_FROM_EMAIL")?.trim() ||
-      "noreply@example.com";
+      "verify@zerodraft.ai";
     this.fromName =
       this.configService.get<string>("MAILTRAP_FROM_NAME")?.trim() ||
-      "Your App";
+      "Surge Platform";
+    this.inboxId =
+      this.configService.get<string>("MAILTRAP_INBOX_ID")?.trim() || "";
   }
 
-  private validateDns(): Promise<void> {
-    this.logger.debug("Skipping DNS validation for Mailtrap (bypassed)");
-    return Promise.resolve();
+  private async discoverSandboxInbox(): Promise<string | null> {
+    if (!this.token) return null;
+    return new Promise((resolve) => {
+      const options = {
+        hostname: "mailtrap.io",
+        port: 443,
+        path: "/api/inboxes",
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+          "Api-Token": this.token,
+        },
+        timeout: 5000,
+      };
+
+      const req = https.request(options, (res) => {
+        let data = "";
+        res.on("data", (chunk) => {
+          data += chunk;
+        });
+        res.on("end", () => {
+          try {
+            const inboxes = JSON.parse(data);
+            if (Array.isArray(inboxes) && inboxes.length > 0 && inboxes[0].id) {
+              const discovered = String(inboxes[0].id);
+              this.logger.log(`Discovered Mailtrap Sandbox Inbox ID: ${discovered}`);
+              resolve(discovered);
+              return;
+            }
+          } catch {
+            // Ignore parse errors
+          }
+          resolve(null);
+        });
+      });
+
+      req.on("error", () => resolve(null));
+      req.setTimeout(5000, () => {
+        req.destroy();
+        resolve(null);
+      });
+      req.end();
+    });
   }
 
   async sendEmail(params: {
@@ -64,12 +108,20 @@ export class MailtrapService {
     };
 
     try {
+      let targetInboxId = this.inboxId;
+      if (!targetInboxId) {
+        // Auto-discover sandbox inbox if not configured explicitly
+        targetInboxId = (await this.discoverSandboxInbox()) || "";
+        if (targetInboxId) {
+          this.inboxId = targetInboxId;
+        }
+      }
+
       this.logger.debug(
-        `Sending email to ${params.to} via Mailtrap. Token: ${this.token.substring(0, 10)}...`,
+        `Sending email to ${params.to} via Mailtrap (Inbox/Mode: ${targetInboxId || "Live"}). Token: ${this.token.substring(0, 8)}...`,
       );
 
-      await this.validateDns();
-      await sendViaHttps(this.token, payload, this.logger);
+      await sendViaHttps(this.token, payload, this.logger, targetInboxId);
 
       this.logger.log(`Email sent successfully to ${params.to}`);
       return true;

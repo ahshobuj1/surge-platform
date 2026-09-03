@@ -5,17 +5,22 @@ export async function sendViaHttps(
   token: string,
   payload: object,
   logger: Logger,
+  inboxId?: string | number,
   attempt: number = 1,
 ): Promise<void> {
   const maxRetries = 3;
+
+  const isSandbox = Boolean(inboxId);
+  const hostname = isSandbox ? "sandbox.api.mailtrap.io" : "send.api.mailtrap.io";
+  const path = isSandbox ? `/api/send/${inboxId}` : "/api/send";
 
   return new Promise((resolve, reject) => {
     const postData = JSON.stringify(payload);
 
     const options = {
-      hostname: "send.api.mailtrap.io",
+      hostname,
       port: 443,
-      path: "/api/send",
+      path,
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -54,7 +59,7 @@ export async function sendViaHttps(
             `Network error on attempt ${attempt}/${maxRetries}: ${errorMsg}. Retrying...`,
           );
           setTimeout(() => {
-            sendViaHttps(token, payload, logger, attempt + 1)
+            sendViaHttps(token, payload, logger, inboxId, attempt + 1)
               .then(resolve)
               .catch(reject);
           }, 1000 * attempt);

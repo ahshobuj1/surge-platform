@@ -1,23 +1,24 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Input } from "@/components/ui/input"; // বাংলা: shadcn input import
+import { cn } from "@/lib/utils";
 
 type Props = {
   length?: number;
   onChange: (otp: string) => void;
+  disabled?: boolean;
 };
 
-export default function OtpInput({ length = 6, onChange }: Props) {
+export default function OtpInput({ length = 6, onChange, disabled = false }: Props) {
   const [otp, setOtp] = useState<string[]>(Array(length).fill(""));
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // বাংলা: প্রথম input এ auto focus করার জন্য
   useEffect(() => {
     inputRefs.current[0]?.focus();
   }, []);
 
   const handleChange = (index: number, value: string) => {
+    if (disabled) return;
     if (!/^\d*$/.test(value)) return;
 
     const newOtp = [...otp];
@@ -26,7 +27,6 @@ export default function OtpInput({ length = 6, onChange }: Props) {
 
     onChange(newOtp.join(""));
 
-    // বাংলা: digit দিলে next input এ focus যাবে
     if (value && index < length - 1) {
       inputRefs.current[index + 1]?.focus();
     }
@@ -36,13 +36,20 @@ export default function OtpInput({ length = 6, onChange }: Props) {
     e: React.KeyboardEvent<HTMLInputElement>,
     index: number
   ) => {
-    // বাংলা: backspace দিলে আগের input এ focus যাবে
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
+    if (disabled) return;
+    if (e.key === "Backspace") {
+      if (!otp[index] && index > 0) {
+        inputRefs.current[index - 1]?.focus();
+      }
+    } else if (e.key === "ArrowLeft" && index > 0) {
       inputRefs.current[index - 1]?.focus();
+    } else if (e.key === "ArrowRight" && index < length - 1) {
+      inputRefs.current[index + 1]?.focus();
     }
   };
 
   const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    if (disabled) return;
     e.preventDefault();
 
     const pasteData = e.clipboardData.getData("text").replace(/\D/g, "");
@@ -54,25 +61,35 @@ export default function OtpInput({ length = 6, onChange }: Props) {
 
     setOtp(newOtp);
     onChange(newOtp.join(""));
+
+    const focusIndex = Math.min(pasteData.length, length - 1);
+    inputRefs.current[focusIndex]?.focus();
   };
 
   return (
-    <div className="flex justify-center gap-3">
+    <div className="flex justify-center items-center gap-2 sm:gap-2.5">
       {otp.map((digit, index) => (
-        <Input
+        <input
           key={index}
           type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
           maxLength={1}
           value={digit}
+          disabled={disabled}
           onChange={(e) => handleChange(index, e.target.value)}
           onKeyDown={(e) => handleKeyDown(e, index)}
           onPaste={handlePaste}
           ref={(el) => {
             inputRefs.current[index] = el;
           }}
-          className="h-12 w-12 text-center text-lg font-semibold
-          bg-white border border-border rounded-lg
-          focus:ring-2 focus:ring-primary"
+          className={cn(
+            "h-12 w-11 sm:w-12 text-center text-lg font-bold text-slate-900",
+            "bg-white border border-slate-200/90 rounded-xl sm:rounded-2xl",
+            "shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)] outline-none transition-all",
+            "focus:border-[#4F62E8] focus:ring-2 focus:ring-indigo-100",
+            "disabled:bg-slate-50 disabled:text-slate-400"
+          )}
         />
       ))}
     </div>

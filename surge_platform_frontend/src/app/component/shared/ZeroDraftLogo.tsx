@@ -1,46 +1,28 @@
+import Image from "next/image";
+
 interface ZeroDraftLogoProps {
   className?: string;
   size?: "sm" | "md" | "lg";
 }
 
-const ZerodraftLogo = ({ className = "mb-10", size = "lg" }: ZeroDraftLogoProps) => {
-  const fontSizeClass =
+const ZerodraftLogo = ({ className = "mb-8", size = "lg" }: ZeroDraftLogoProps) => {
+  const dimensions =
     size === "sm"
-      ? "text-xl md:text-2xl"
+      ? { width: 120, height: 12 }
       : size === "md"
-      ? "text-3xl md:text-4xl"
-      : "text-4xl md:text-5xl";
+      ? { width: 150, height: 15 }
+      : { width: 180, height: 18 };
 
   return (
-    <div className={`flex justify-center ${className}`}>
-      <h1
-        className={`${fontSizeClass} tracking-widest font-bold text-foreground select-none`}
-        style={{
-          fontFamily: "'Courier New', monospace",
-          letterSpacing: "0.15em",
-          textShadow: "0 0 0 transparent",
-          WebkitTextStroke: "0.5px currentColor",
-          paintOrder: "stroke fill",
-        }}
-      >
-        {"zerodraft".split("").map((char, i) => (
-          <span
-            key={i}
-            style={{
-              display: "inline-block",
-              backgroundImage:
-                "radial-gradient(circle, currentColor 1.2px, transparent 1.2px)",
-              backgroundSize: "4px 4px",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-              color: "hsl(228 20% 15%)",
-            }}
-          >
-            {char}
-          </span>
-        ))}
-      </h1>
+    <div className={`flex items-center justify-center ${className}`}>
+      <Image
+        src="/Logo - Black.svg"
+        alt="zerodraft"
+        width={dimensions.width}
+        height={dimensions.height}
+        priority
+        className="h-auto w-auto object-contain max-h-7"
+      />
     </div>
   );
 };

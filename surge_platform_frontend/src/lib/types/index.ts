@@ -1,4 +1,4 @@
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   statusCode: number;
   message: string;
@@ -10,7 +10,7 @@ export interface ApiResponse<T = any> {
     page?: number;
     limit?: number;
     totalPages?: number;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -48,12 +48,14 @@ export interface LoginResponseData {
 // Backend verify-email response: { accessToken, refreshToken, user: { id, email, role } }
 export interface VerifyEmailResponseData {
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string;
   user: {
     id: string;
     email: string;
     role: string;
   };
+  company?: Company;
+  workspace?: Workspace;
 }
 
 // Kept for backward compat

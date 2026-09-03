@@ -15,107 +15,124 @@ import { cn } from "@/lib/utils";
 
 const TONE_OPTIONS = [
   "Professional & Objective",
-  "Conversational & Friendly",
-  "Formal & Academic",
-  "Bold & Opinionated",
-  "Witty & Playful",
+  "Conversational & Engaging",
+  "Authoritative & Thought-Leadership",
+  "Technical & In-depth",
+  "Casual & Punchy",
 ];
 
-interface StepPreferencesProps {
-  onContinue: () => void;
+export interface PreferencesData {
+  tone: string;
+  audience: string;
+  excluded: string;
 }
 
-export function StepPreferences({ onContinue }: StepPreferencesProps) {
-  const [tone, setTone] = useState("Professional & Objective");
-  const [audience, setAudience] = useState("");
-  const [excluded, setExcluded] = useState("");
+interface StepPreferencesProps {
+  onContinue: (data: PreferencesData) => void;
+  initialData?: Partial<PreferencesData>;
+}
+
+export function StepPreferences({ onContinue, initialData }: StepPreferencesProps) {
+  const [tone, setTone] = useState(initialData?.tone || "Professional & Objective");
+  const [audience, setAudience] = useState(initialData?.audience || "");
+  const [excluded, setExcluded] = useState(initialData?.excluded || "");
 
   const canContinue = audience.trim().length > 0;
 
+  const handleContinue = () => {
+    if (!canContinue) return;
+    onContinue({ tone, audience, excluded });
+  };
+
   return (
-    <div className="flex flex-col gap-8">
-      {/* Header */}
-      <div>
-        <p className="text-xs font-medium text-slate-400 uppercase tracking-widest mb-1">
-          Step 2 of 4
-        </p>
-        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
-          Editorial Style
-        </h1>
-      </div>
+    <div className="flex flex-col justify-between h-full">
+      <div className="flex flex-col">
+        {/* Header */}
+        <div className="mb-7">
+          <p className="text-xs font-mono font-medium text-slate-400 mb-1.5">
+            Step 2 of 4
+          </p>
+          <h1 className="text-3xl font-bold text-slate-900 font-mono tracking-tight">
+            Editorial Style
+          </h1>
+        </div>
 
-      {/* Form */}
-      <div className="flex flex-col gap-5">
-        {/* Tone dropdown */}
-        <div className="flex flex-col gap-2">
-          <Label className="text-sm font-medium text-slate-700">
-            Tone of Article
-          </Label>
-          <Select value={tone} onValueChange={(val) => setTone(val || "")}>
-            <SelectTrigger
+        {/* Form */}
+        <div className="flex flex-col gap-4">
+          {/* Tone dropdown */}
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs font-semibold text-slate-700 font-mono">
+              Tone of Article
+            </Label>
+            <Select value={tone} onValueChange={(val) => setTone(val || TONE_OPTIONS[0])}>
+              <SelectTrigger
+                className={cn(
+                  "w-full h-[52px] rounded-full border border-slate-200/80 bg-white/90 shadow-2xs text-sm font-mono text-slate-800 px-5 font-normal transition-all",
+                  "focus:ring-2 focus:ring-[#4F62E8]/20 focus:border-[#4F62E8] focus:ring-offset-0"
+                )}
+              >
+                <SelectValue placeholder="Select tone" />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl border border-slate-100 shadow-xl p-1 bg-white font-mono">
+                {TONE_OPTIONS.map((opt) => (
+                  <SelectItem
+                    key={opt}
+                    value={opt}
+                    className="rounded-xl text-xs font-mono py-2.5 px-3 focus:bg-[#EEF1FB] focus:text-[#4F62E8] cursor-pointer"
+                  >
+                    {opt}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Targeted Audience */}
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs font-semibold text-slate-700 font-mono">
+              Targeted Audience
+            </Label>
+            <Input
+              value={audience}
+              onChange={(e) => setAudience(e.target.value)}
+              placeholder="e.g. CTOs, Developers, Marketing managers"
               className={cn(
-                "w-full rounded-2xl border-0 bg-white/70 shadow-sm text-sm text-slate-700",
-                "focus:ring-2 focus:ring-indigo-400 focus:ring-offset-0"
+                "h-[52px] rounded-full border border-slate-200/80 bg-white/90 shadow-2xs text-sm font-mono px-5 text-slate-800 placeholder:text-slate-400 transition-all",
+                "focus-visible:ring-2 focus-visible:ring-[#4F62E8]/20 focus-visible:border-[#4F62E8] focus-visible:ring-offset-0"
               )}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl border-0 shadow-lg p-2">
-              {TONE_OPTIONS.map((opt) => (
-                <SelectItem key={opt} value={opt} className="">
-                  {opt}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+            />
+          </div>
 
-        {/* Targeted Audience */}
-        <div className="flex flex-col gap-2">
-          <Label className="text-sm font-medium text-slate-700">
-            Targeted Audience
-          </Label>
-          <Input
-            value={audience}
-            onChange={(e) => setAudience(e.target.value)}
-            placeholder="e.g. CTOs, Developers, Marketing managers"
-            className={cn(
-              "h-12 rounded-2xl border-0 bg-white/70 shadow-sm text-sm",
-              "focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-0",
-              "placeholder:text-slate-400 text-slate-700"
-            )}
-          />
-        </div>
-
-        {/* Excluded Topics */}
-        <div className="flex flex-col gap-2">
-          <Label className="text-sm font-medium text-slate-700">
-            Excluded Topics{" "}
-            <span className="text-slate-400 font-normal">(optional)</span>
-          </Label>
-          <Input
-            value={excluded}
-            onChange={(e) => setExcluded(e.target.value)}
-            placeholder="e.g. Politics, Fashion"
-            className={cn(
-              "h-12 rounded-2xl border-0 bg-white/70 shadow-sm text-sm",
-              "focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-0",
-              "placeholder:text-slate-400 text-slate-700"
-            )}
-          />
+          {/* Excluded Topics */}
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs font-semibold text-slate-700 font-mono">
+              Excluded Topics{" "}
+              <span className="text-slate-400 font-normal text-xs">(optional)</span>
+            </Label>
+            <Input
+              value={excluded}
+              onChange={(e) => setExcluded(e.target.value)}
+              placeholder="e.g. Politics, Crypto"
+              className={cn(
+                "h-[52px] rounded-full border border-slate-200/80 bg-white/90 shadow-2xs text-sm font-mono px-5 text-slate-800 placeholder:text-slate-400 transition-all",
+                "focus-visible:ring-2 focus-visible:ring-[#4F62E8]/20 focus-visible:border-[#4F62E8] focus-visible:ring-offset-0"
+              )}
+            />
+          </div>
         </div>
       </div>
 
       {/* Continue */}
-      <div className="flex justify-end">
+      <div className="flex justify-end pt-8 mt-auto">
         <Button
-          onClick={onContinue}
+          type="button"
+          onClick={handleContinue}
           disabled={!canContinue}
           className={cn(
-            "h-11 px-8 rounded-2xl text-sm font-semibold transition-all",
+            "h-12 px-9 rounded-full text-sm font-mono font-semibold transition-all cursor-pointer",
             canContinue
-              ? "bg-indigo-500 hover:bg-indigo-600 text-white shadow-md"
-              : "bg-indigo-200 text-indigo-300 cursor-not-allowed"
+              ? "bg-[#4F62E8] hover:bg-[#4353D3] text-white shadow-[0_4px_14px_rgba(79,98,232,0.3)]"
+              : "bg-[#A3B4FA] hover:bg-[#92A5F8] text-white shadow-none cursor-not-allowed"
           )}
         >
           Continue
@@ -124,3 +141,4 @@ export function StepPreferences({ onContinue }: StepPreferencesProps) {
     </div>
   );
 }
+

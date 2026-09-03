@@ -11,11 +11,11 @@ const plans = [
     monthlyPrice: 19,
     yearlyPrice: 15,
     tagline: "Great for getting started.",
-    features: ["5 RSS Feeds", "Daily Publishing"],
+    features: ["5 RSS Feeds", "Weekly Publishing"],
     popular: false,
   },
   {
-    name: "Premium",
+    name: "Pro",
     monthlyPrice: 49,
     yearlyPrice: 39,
     tagline: "Great for getting started.",
@@ -23,11 +23,11 @@ const plans = [
     popular: true,
   },
   {
-    name: "Pro",
+    name: "Enterprise",
     monthlyPrice: 99,
     yearlyPrice: 79,
     tagline: "Great for getting started.",
-    features: ["15 RSS Feeds", "Daily Publishing"],
+    features: ["15 RSS Feeds", "Flexible Publishing", "Multiple Publishing Daily"],
     popular: false,
   },
 ];
@@ -112,77 +112,133 @@ export default function PricingSection() {
           </div>
         </div>
 
-        {/* Pricing Cards Grid - Reduced Width (max-w-[980px]) */}
+        {/* Pricing Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 items-stretch">
-          {plans.map((plan, index) => (
-            <div
-              key={index}
-              className={`rounded-[24px] flex flex-col justify-between transition-all duration-300 overflow-hidden ${
-                plan.popular
-                  ? "bg-white border-2 border-[#1D68EE] shadow-[0_12px_36px_-6px_rgba(29,104,238,0.22)] relative hover:-translate-y-1"
-                  : "bg-white/95 backdrop-blur-md border border-white shadow-[0_6px_25px_-6px_rgba(0,0,0,0.05)] hover:shadow-lg hover:-translate-y-1"
-              }`}
-            >
-              {/* Popular top banner */}
-              {plan.popular && (
-                <div className="bg-[#1D68EE] text-white text-[12px] font-semibold py-1.5 text-center tracking-tight select-none">
-                  Most Popular
-                </div>
-              )}
+          {plans.map((plan, index) => {
+            const price = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
 
-              <div className="p-6 sm:p-7 flex-1 flex flex-col justify-between">
-                <div>
-                  <h3 className="text-base sm:text-lg font-bold text-zinc-900 tracking-tight">
-                    {plan.name}
-                  </h3>
+            if (plan.popular) {
+              return (
+                <div key={index} className="h-full flex flex-col">
+                  <div className="flex flex-col rounded-[28px] bg-[#1868F2] p-[3px] shadow-[0_12px_36px_-6px_rgba(24,104,242,0.25)] flex-1 select-none transition-all duration-300">
+                    {/* Most Popular Label (Outside the white card) */}
+                    <div className="h-8 flex items-center justify-center text-white text-xs font-semibold tracking-normal select-none">
+                      Most Popular
+                    </div>
 
-                  <div className="mt-3 flex items-baseline">
-                    <span className="text-3xl sm:text-4xl font-extrabold text-zinc-900 tracking-tight">
-                      ${isYearly ? plan.yearlyPrice : plan.monthlyPrice}
-                    </span>
-                    <span className="text-xs text-zinc-400 font-normal ml-1.5">
-                      /month
-                    </span>
-                  </div>
+                    {/* Inner White Card - exactly matching height with Starter & Enterprise */}
+                    <div className="bg-white rounded-[24px] p-6 sm:p-7 flex flex-col justify-between flex-1">
+                      <div>
+                        <h3 className="text-base font-bold text-zinc-900 tracking-tight">
+                          {plan.name}
+                        </h3>
 
-                  <p className="mt-2 text-xs text-zinc-500 leading-relaxed">
-                    {plan.tagline}
-                  </p>
-
-                  <div className="mt-6 mb-3">
-                    <p className="text-xs font-bold text-zinc-800 tracking-tight">
-                      What's included
-                    </p>
-                  </div>
-
-                  <ul className="flex flex-col gap-2.5">
-                    {plan.features.map((feature, i) => (
-                      <li
-                        key={i}
-                        className="flex items-center gap-2.5 text-xs text-zinc-600"
-                      >
-                        <div className="w-4 h-4 rounded-full border border-zinc-300 flex items-center justify-center shrink-0">
-                          <Check className="w-2.5 h-2.5 text-zinc-500 stroke-[2.5]" />
+                        <div className="mt-2 flex items-baseline gap-1.5">
+                          <span className="text-4xl font-extrabold text-zinc-900 tracking-tight">
+                            ${price}
+                          </span>
+                          <span className="text-xs text-zinc-400 font-normal">
+                            /month
+                          </span>
                         </div>
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
 
-                <div className="mt-8">
-                  <Link href="/signup" className="block w-full">
-                    <button
-                      type="button"
-                      className="w-full py-2.5 sm:py-3 px-4 rounded-xl text-xs sm:text-sm font-semibold bg-[#1D68EE] hover:bg-[#1557cf] active:scale-[0.98] text-white shadow-sm transition-all cursor-pointer"
-                    >
-                      Get Started
-                    </button>
-                  </Link>
+                        <p className="mt-2 text-xs text-zinc-500 leading-relaxed mb-6">
+                          {plan.tagline}
+                        </p>
+
+                        <div className="mb-3">
+                          <p className="text-xs font-bold text-zinc-800 tracking-tight">
+                            What&apos;s included
+                          </p>
+                        </div>
+
+                        <ul className="flex flex-col gap-3">
+                          {plan.features.map((feature, i) => (
+                            <li
+                              key={i}
+                              className="flex items-center gap-2.5 text-xs text-zinc-600 font-normal"
+                            >
+                              <div className="w-4 h-4 rounded-full border border-zinc-300 flex items-center justify-center shrink-0 text-zinc-400">
+                                <Check className="w-2.5 h-2.5 stroke-[2.5]" />
+                              </div>
+                              <span>{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div className="mt-8 pt-2">
+                        <Link href="/signup" className="block w-full">
+                          <button
+                            type="button"
+                            className="w-full h-11 rounded-[14px] text-sm font-semibold bg-[#1868F2] hover:bg-[#1456CC] text-white shadow-xs transition-all cursor-pointer"
+                          >
+                            Get Started
+                          </button>
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <div key={index} className="h-full flex flex-col md:pt-8">
+                <div className="rounded-[28px] bg-white p-6 sm:p-7 border border-slate-200/60 shadow-xs hover:shadow-md flex flex-col justify-between flex-1 transition-all duration-300 select-none">
+                  <div>
+                    <h3 className="text-base font-bold text-zinc-900 tracking-tight">
+                      {plan.name}
+                    </h3>
+
+                    <div className="mt-2 flex items-baseline gap-1.5">
+                      <span className="text-4xl font-extrabold text-zinc-900 tracking-tight">
+                        ${price}
+                      </span>
+                      <span className="text-xs text-zinc-400 font-normal">
+                        /month
+                      </span>
+                    </div>
+
+                    <p className="mt-2 text-xs text-zinc-500 leading-relaxed mb-6">
+                      {plan.tagline}
+                    </p>
+
+                    <div className="mb-3">
+                      <p className="text-xs font-bold text-zinc-800 tracking-tight">
+                        What&apos;s included
+                      </p>
+                    </div>
+
+                    <ul className="flex flex-col gap-3">
+                      {plan.features.map((feature, i) => (
+                        <li
+                          key={i}
+                          className="flex items-center gap-2.5 text-xs text-zinc-600 font-normal"
+                        >
+                          <div className="w-4 h-4 rounded-full border border-zinc-300 flex items-center justify-center shrink-0 text-zinc-400">
+                            <Check className="w-2.5 h-2.5 stroke-[2.5]" />
+                          </div>
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="mt-8 pt-2">
+                    <Link href="/signup" className="block w-full">
+                      <button
+                        type="button"
+                        className="w-full h-11 rounded-[14px] text-sm font-semibold bg-[#1868F2] hover:bg-[#1456CC] text-white shadow-xs transition-all cursor-pointer"
+                      >
+                        Get Started
+                      </button>
+                    </Link>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>

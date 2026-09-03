@@ -4,112 +4,160 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Check, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Check, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StepAddFeedsProps {
-  onContinue: () => void;
+  onContinue: (feedData?: { url: string; isValid: boolean }) => void;
+  initialUrl?: string;
 }
 
 type FeedStatus = "idle" | "active" | "inactive";
 
-export function StepAddFeeds({ onContinue }: StepAddFeedsProps) {
-  const [url, setUrl] = useState("https://example.com/feed.xml");
+export function StepAddFeeds({ onContinue, initialUrl = "https://example.com/feed.xml" }: StepAddFeedsProps) {
+  const [url, setUrl] = useState(initialUrl);
   const [feedStatus, setFeedStatus] = useState<FeedStatus>("idle");
+  const [errorText, setErrorText] = useState<string | null>(null);
+
+  const isValidUrl = (testUrl: string): boolean => {
+    try {
+      const parsed = new URL(testUrl);
+      return parsed.protocol === "http:" || parsed.protocol === "https:";
+    } catch {
+      return false;
+    }
+  };
 
   const handleAdd = () => {
-    if (!url.trim()) return;
-    // Simulate validation — toggle between active/inactive for demo
-    setFeedStatus((prev) =>
-      prev === "active" ? "inactive" : "active"
-    );
+    const trimmed = url.trim();
+    if (!trimmed) {
+      setErrorText("Please enter an RSS feed URL");
+      setFeedStatus("inactive");
+      return;
+    }
+
+    if (!isValidUrl(trimmed)) {
+      setErrorText("Please enter a valid URL (e.g. https://example.com/feed.xml)");
+      setFeedStatus("inactive");
+      return;
+    }
+
+    // Toggle or validate feed
+    if (trimmed.includes("invalid") || trimmed.includes("broken")) {
+      setErrorText("Feed unreachable or invalid XML format");
+      setFeedStatus("inactive");
+    } else {
+      setErrorText(null);
+      setFeedStatus("active");
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAdd();
+    }
   };
 
   const canContinue = feedStatus === "active";
 
   return (
-    <div className="flex flex-col gap-8">
-      {/* Header */}
-      <div>
-        <p className="text-xs font-medium text-slate-400 uppercase tracking-widest mb-1">
-          Step 1 of 4
-        </p>
-        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
-          Add Sources
-        </h1>
-      </div>
+    <div className="flex flex-col justify-between h-full">
+      <div className="flex flex-col">
+        {/* Header */}
+        <div className="mb-7">
+          <p className="text-xs font-mono font-medium text-slate-400 mb-1.5">
+            Step 1 of 1
+          </p>
+          <h1 className="text-3xl font-bold text-slate-900 font-mono tracking-tight">
+            Add Sources
+          </h1>
+        </div>
 
-      {/* Form */}
-      <div className="flex flex-col gap-2">
-        <Label className="text-sm font-medium text-slate-700">
-          RSS Feed URL
-        </Label>
+        {/* Form */}
+        <div className="flex flex-col gap-2.5">
+          <Label className="text-xs font-semibold text-slate-700 font-mono">
+            RSS Feed URL
+          </Label>
 
-        <div className="flex items-center gap-3">
-          {/* Input with status badge */}
-          <div className="relative flex-1">
-            <Input
-              type="url"
-              value={url}
-              onChange={(e) => {
-                setUrl(e.target.value);
-                setFeedStatus("idle");
-              }}
-              placeholder="https://example.com/feed.xml"
-              className={cn(
-                "h-12 rounded-2xl border-0 bg-white/70 shadow-sm text-sm pr-24",
-                "focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-0",
-                "placeholder:text-slate-400 text-slate-700"
-              )}
-            />
-
-            {/* Status pill inside input */}
-            {feedStatus !== "idle" && (
-              <div
+          <div className="flex items-center gap-3">
+            {/* Input with inline status badge */}
+            <div className="relative flex-1">
+              <Input
+                type="url"
+                value={url}
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                  setFeedStatus("idle");
+                  setErrorText(null);
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder="https://example.com/feed.xml"
                 className={cn(
-                  "absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full",
-                  feedStatus === "active" &&
-                    "text-emerald-600",
-                  feedStatus === "inactive" &&
-                    "text-red-400"
+                  "h-[52px] rounded-full border border-slate-200/80 bg-white/90 shadow-2xs text-sm font-mono px-6 pr-28 text-slate-800 placeholder:text-slate-400 transition-all",
+                  "focus-visible:ring-2 focus-visible:ring-[#4F62E8]/20 focus-visible:border-[#4F62E8] focus-visible:ring-offset-0",
+                  feedStatus === "inactive" && "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-100",
+                  feedStatus === "active" && "border-emerald-300 focus-visible:border-emerald-500 focus-visible:ring-emerald-100"
                 )}
-              >
-                {feedStatus === "active" ? (
-                  <>
-                    <Check className="w-3 h-3" />
-                    Active
-                  </>
-                ) : (
-                  <>
-                    <X className="w-3 h-3" />
-                    Inactive
-                  </>
-                )}
-              </div>
-            )}
+              />
+
+              {/* Status pill inside input using shadcn Badge */}
+              {feedStatus !== "idle" && (
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "flex items-center gap-1 text-xs font-mono font-semibold px-2.5 py-0.5 rounded-full shadow-2xs transition-all h-6 border",
+                      feedStatus === "active" && "text-emerald-600 bg-emerald-50 border-emerald-200",
+                      feedStatus === "inactive" && "text-red-500 bg-red-50 border-red-200"
+                    )}
+                  >
+                    {feedStatus === "active" ? (
+                      <>
+                        <Check className="w-3 h-3 stroke-[3]" />
+                        Active
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="w-3 h-3 stroke-[2.5]" />
+                        Inactive
+                      </>
+                    )}
+                  </Badge>
+                </div>
+              )}
+            </div>
+
+            {/* Add button */}
+            <Button
+              type="button"
+              onClick={handleAdd}
+              className="h-[52px] px-8 rounded-full bg-[#EBECEF] hover:bg-[#E2E4E8] text-[#161922] font-mono font-semibold text-sm shadow-none border-0 transition-colors cursor-pointer"
+            >
+              Add
+            </Button>
           </div>
 
-          {/* Add button */}
-          <Button
-            onClick={handleAdd}
-            variant="outline"
-            className="h-12 px-6 rounded-2xl border-0 bg-white shadow-sm text-sm font-semibold text-slate-700 hover:bg-white/90"
-          >
-            Add
-          </Button>
+          {errorText && (
+            <p className="text-xs font-mono text-red-500 font-medium px-2 mt-0.5">
+              {errorText}
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Continue */}
-      <div className="flex justify-end">
+      {/* Footer Continue */}
+      <div className="flex justify-end pt-8 mt-auto">
         <Button
-          onClick={onContinue}
+          type="button"
+          onClick={() => onContinue({ url, isValid: feedStatus === "active" })}
           disabled={!canContinue}
           className={cn(
-            "h-11 px-8 rounded-2xl text-sm font-semibold transition-all",
+            "h-12 px-9 rounded-full text-sm font-mono font-semibold transition-all cursor-pointer",
             canContinue
-              ? "bg-indigo-500 hover:bg-indigo-600 text-white shadow-md"
-              : "bg-indigo-200 text-indigo-300 cursor-not-allowed"
+              ? "bg-[#4F62E8] hover:bg-[#4353D3] text-white shadow-[0_4px_14px_rgba(79,98,232,0.3)]"
+              : "bg-[#A3B4FA] hover:bg-[#92A5F8] text-white shadow-none cursor-not-allowed"
           )}
         >
           Continue
@@ -118,3 +166,4 @@ export function StepAddFeeds({ onContinue }: StepAddFeedsProps) {
     </div>
   );
 }
+
