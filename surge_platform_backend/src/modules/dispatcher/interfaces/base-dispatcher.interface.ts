@@ -1,5 +1,6 @@
 export interface DispatchPayload {
   channel: string; // 'wordpress' | 'linkedin' | 'facebook' | ...
+  channelId?: string;
   title?: string;
   content: string; // plain text or markdown
   images?: string[]; // URLs or local paths

@@ -7,16 +7,21 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { json, urlencoded } from "express";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
+
+  app.enableShutdownHooks();
 
   // Increase payload limit for avatar images & large data payloads
   app.use(json({ limit: "10mb" }));
   app.use(urlencoded({ limit: "10mb", extended: true }));
 
   // Allow frontend integration from configured origins.
-  const allowedOrigins = process.env.CORS_ORIGINS
-    ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim())
-    : true;
+  const rawOrigins = process.env.ALLOWED_ORIGINS || process.env.CORS_ORIGINS;
+  const allowedOrigins = rawOrigins
+    ? rawOrigins.split(",").map((origin) => origin.trim())
+    : process.env.NODE_ENV === "production"
+      ? false
+      : true;
   app.enableCors({
     origin: allowedOrigins,
     methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
@@ -77,6 +82,7 @@ async function bootstrap() {
   // because the filter *depends* on other providers (HttpAdapterHost)
   // that are only available *after* the app is created.
 
-  await app.listen(process.env.PORT ?? 3000);
+  const port = Number(process.env.PORT ?? 3030);
+  await app.listen(port, "0.0.0.0");
 }
 void bootstrap();

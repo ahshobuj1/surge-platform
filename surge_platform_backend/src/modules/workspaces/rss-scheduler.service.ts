@@ -1,11 +1,17 @@
-import { Injectable, OnModuleInit } from "@nestjs/common";
+import {
+  Injectable,
+  OnApplicationShutdown,
+  OnModuleInit,
+} from "@nestjs/common";
 import { Queue } from "bullmq";
 import Redis from "ioredis";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../../common/context/prisma.service";
 
 @Injectable()
-export class RssSchedulerService implements OnModuleInit {
+export class RssSchedulerService
+  implements OnModuleInit, OnApplicationShutdown
+{
   private queue: Queue;
   private redis: Redis;
 
@@ -114,6 +120,17 @@ export class RssSchedulerService implements OnModuleInit {
     });
     for (const f of feeds) {
       await this.ensureFeedScheduled(workspaceId, f.id, f.feedUrl);
+    }
+  }
+
+  async onApplicationShutdown() {
+    try {
+      await this.queue.close();
+    } catch {}
+    try {
+      await this.redis.quit();
+    } catch {
+      this.redis.disconnect();
     }
   }
 }

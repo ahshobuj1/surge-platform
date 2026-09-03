@@ -1,5 +1,5 @@
 import { InjectQueue, Processor, WorkerHost } from "@nestjs/bullmq";
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, OnApplicationShutdown } from "@nestjs/common";
 import { Job, Queue } from "bullmq";
 import Redis from "ioredis";
 import { ConfigService } from "@nestjs/config";
@@ -28,7 +28,10 @@ interface AutopilotDispatchJobPayload {
 
 @Injectable()
 @Processor("autopilot-dispatch-queue")
-export class AutopilotDispatchProcessor extends WorkerHost {
+export class AutopilotDispatchProcessor
+  extends WorkerHost
+  implements OnApplicationShutdown
+{
   private readonly logger = new Logger(AutopilotDispatchProcessor.name);
   private readonly redis: Redis;
 
@@ -114,5 +117,13 @@ export class AutopilotDispatchProcessor extends WorkerHost {
       this.encryptionService,
     );
     return this.dispatcher.dispatch(payload);
+  }
+
+  async onApplicationShutdown() {
+    try {
+      await this.redis.quit();
+    } catch {
+      this.redis.disconnect();
+    }
   }
 }

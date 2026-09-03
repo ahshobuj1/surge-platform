@@ -24,10 +24,15 @@ export class PersonalSocialProcessor {
     });
     if (!draft || !draft.polishedContent) throw new Error(`Draft ${draftId} or polishedContent not found`);
 
-    const toneProfile = await this.prisma.toneProfile.findFirst({
-      where: { name: { equals: tone, mode: "insensitive" } },
-      include: { stepPersonalSocialPrompt: true },
-    });
+    const toneProfile = draft.toneProfileId
+      ? await this.prisma.toneProfile.findUnique({
+          where: { id: draft.toneProfileId },
+          include: { stepPersonalSocialPrompt: true },
+        })
+      : await this.prisma.toneProfile.findFirst({
+          where: { name: { equals: tone, mode: "insensitive" } },
+          include: { stepPersonalSocialPrompt: true },
+        });
 
     const brandVariables = await resolveWorkspaceBrandVariables(this.prisma, draft.workspaceId);
 

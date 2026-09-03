@@ -185,7 +185,7 @@ async function invokeAnthropic(
 
   const completion = await anthropic.messages.create({
     model,
-    max_tokens: 1024,
+    max_tokens: 4096,
     temperature: 0.7,
     system: finalSystem,
     messages: [{ role: "user", content: finalUser }],

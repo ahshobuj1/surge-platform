@@ -4,7 +4,13 @@ import { ToneProfilesService } from "./tone-profiles.service";
 
 describe("ToneProfilesController", () => {
   let controller: ToneProfilesController;
-  let service: any;
+  let service: {
+    findAll: jest.Mock;
+    findOne: jest.Mock;
+    create: jest.Mock;
+    update: jest.Mock;
+    remove: jest.Mock;
+  };
 
   const mockToneProfile = {
     id: "tp-1",
@@ -22,9 +28,7 @@ describe("ToneProfilesController", () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ToneProfilesController],
-      providers: [
-        { provide: ToneProfilesService, useValue: service },
-      ],
+      providers: [{ provide: ToneProfilesService, useValue: service }],
     }).compile();
 
     controller = module.get<ToneProfilesController>(ToneProfilesController);
@@ -37,7 +41,7 @@ describe("ToneProfilesController", () => {
   describe("findAll", () => {
     it("should return all tone profiles", async () => {
       service.findAll.mockResolvedValue([mockToneProfile]);
-      const res = await controller.findAll();
+      const res = await controller.findAll("admin");
       expect(res).toEqual([mockToneProfile]);
       expect(service.findAll).toHaveBeenCalled();
     });
@@ -46,7 +50,7 @@ describe("ToneProfilesController", () => {
   describe("findOne", () => {
     it("should return single profile", async () => {
       service.findOne.mockResolvedValue(mockToneProfile);
-      const res = await controller.findOne("tp-1");
+      const res = await controller.findOne("tp-1", "admin");
       expect(res).toEqual(mockToneProfile);
       expect(service.findOne).toHaveBeenCalledWith("tp-1");
     });
@@ -56,11 +60,27 @@ describe("ToneProfilesController", () => {
     const createDto = {
       name: "happy",
       stepGroupingPrompt: { title: "PG", systemPrompt: "SG", template: "TG" },
-      stepOneRawDraftPrompt: { title: "P1", systemPrompt: "S1", template: "T1" },
-      stepTwoPolishingPrompt: { title: "P2", systemPrompt: "S2", template: "T2" },
+      stepOneRawDraftPrompt: {
+        title: "P1",
+        systemPrompt: "S1",
+        template: "T1",
+      },
+      stepTwoPolishingPrompt: {
+        title: "P2",
+        systemPrompt: "S2",
+        template: "T2",
+      },
       stepThreeImagePrompt: { title: "P3", systemPrompt: "S3", template: "T3" },
-      stepCompanySocialPrompt: { title: "PC", systemPrompt: "SC", template: "TC" },
-      stepPersonalSocialPrompt: { title: "PS", systemPrompt: "SS", template: "TS" },
+      stepCompanySocialPrompt: {
+        title: "PC",
+        systemPrompt: "SC",
+        template: "TC",
+      },
+      stepPersonalSocialPrompt: {
+        title: "PS",
+        systemPrompt: "SS",
+        template: "TS",
+      },
     };
 
     it("should call service.create", async () => {
@@ -79,7 +99,7 @@ describe("ToneProfilesController", () => {
     it("should call service.update", async () => {
       service.update.mockResolvedValue({ id: "tp-1", ...updateDto });
       const res = await controller.update("tp-1", updateDto);
-      expect(res.name).toBe("happy-updated");
+      expect(res?.name).toBe("happy-updated");
       expect(service.update).toHaveBeenCalledWith("tp-1", updateDto);
     });
   });

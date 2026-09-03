@@ -247,21 +247,31 @@ describe("AiPromptsService Batch Digest Integration", () => {
                 model: "gpt-4o-mini",
                 messages: [],
               });
-              const imageRes = await mockOpenAIImageGenerate({
-                model: "dall-e-3",
-                prompt: "image prompt",
-              });
-              const imageUrl = imageRes.data[0].url;
+              let imageBuffer: Buffer;
+              let provider = "openai";
+              try {
+                await mockOpenAIImageGenerate({
+                  model: "dall-e-3",
+                  prompt: "image prompt",
+                  size: "1024x1024",
+                  quality: "standard",
+                  n: 1,
+                });
+                imageBuffer = Buffer.from("downloaded-openai-image");
+              } catch {
+                imageBuffer = Buffer.from("fallback-image");
+                provider = "fallback";
+              }
               const presignedUrl = await storageService.uploadBuffer(
                 `workspaces/${workspaceId}/assets/image.png`,
-                Buffer.from("downloaded-openai-image"),
-                "image/png"
+                imageBuffer,
+                "image/png",
               );
               await prisma.generatedDraft.update({
                 where: { id: draftId },
                 data: {
                   imageUrl: presignedUrl,
-                  imageProvider: "openai",
+                  imageProvider: provider,
                 },
               });
             },

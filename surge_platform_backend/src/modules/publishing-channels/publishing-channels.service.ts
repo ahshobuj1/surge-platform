@@ -36,10 +36,33 @@ export class PublishingChannelsService {
   async findAll(workspaceId: string | undefined, user: AuthenticatedUser) {
     if (workspaceId) {
       await assertWorkspaceAccess(this.prisma, workspaceId, user, "view");
+      const channels = await this.prisma.publishingChannel.findMany({
+        where: { workspaceId },
+        orderBy: { createdAt: "desc" },
+      });
+      return channels.map((channel) => this.sanitizeChannel(channel));
     }
 
+    if (user.role === "admin") {
+      const channels = await this.prisma.publishingChannel.findMany({
+        orderBy: { createdAt: "desc" },
+      });
+      return channels.map((channel) => this.sanitizeChannel(channel));
+    }
+
+    const accessibleWorkspaces = await this.prisma.workspace.findMany({
+      where: {
+        OR: [
+          { company: { ownerId: user.userId } },
+          { members: { some: { userId: user.userId } } },
+        ],
+      },
+      select: { id: true },
+    });
+    const workspaceIds = accessibleWorkspaces.map((w) => w.id);
+
     const channels = await this.prisma.publishingChannel.findMany({
-      where: workspaceId ? { workspaceId } : {},
+      where: { workspaceId: { in: workspaceIds } },
       orderBy: { createdAt: "desc" },
     });
 
@@ -109,14 +132,36 @@ export class PublishingChannelsService {
   }
 
   private sanitizeChannel(channel: any) {
-    const credentials = this.encryptionService.decrypt(
-      channel.encryptedCredentials,
-    );
+    let credentialsSummary: Record<string, any> = { isConfigured: true };
+    try {
+      const decrypted = this.encryptionService.decrypt(
+        channel.encryptedCredentials,
+      );
+      if (decrypted && typeof decrypted === "object") {
+        credentialsSummary = {
+          isConfigured: true,
+          platform: channel.platform,
+          authorUrl:
+            decrypted.authorUrl ||
+            decrypted.wpUrl ||
+            decrypted.siteUrl ||
+            undefined,
+          targetType: decrypted.organizationUrn
+            ? "organization"
+            : decrypted.personUrn
+              ? "person"
+              : undefined,
+          hasAccessToken: Boolean(decrypted.accessToken || decrypted.apiKey),
+        };
+      }
+    } catch {
+      credentialsSummary = { isConfigured: false };
+    }
 
+    const { encryptedCredentials, ...safeChannel } = channel;
     return {
-      ...channel,
-      credentials,
-      encryptedCredentials: "[PROTECTED]",
+      ...safeChannel,
+      credentials: credentialsSummary,
     };
   }
 }

@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { PrismaService } from "../../common/context/prisma.service";
 import { CreateWorkspaceDto } from "./dto/create-workspace.dto";
 import {
@@ -103,11 +107,18 @@ export class WorkspacesService {
     return this.prisma.workspace.delete({ where: { id } });
   }
 
-  async updateQueueConfig(workspaceId: string, config: QueueConfig) {
+  async updateQueueConfig(
+    workspaceId: string,
+    config: QueueConfig,
+    user?: AuthenticatedUser,
+  ) {
+    if (user) {
+      await assertWorkspaceAccess(this.prisma, workspaceId, user, "update");
+    }
     const ws = await this.prisma.workspace.findUnique({
       where: { id: workspaceId },
     });
-    if (!ws) throw new Error("Workspace not found");
+    if (!ws) throw new NotFoundException("Workspace not found");
 
     const mergedConfig = mergeQueueConfig(
       ws.queueConfig as QueueConfig | null,

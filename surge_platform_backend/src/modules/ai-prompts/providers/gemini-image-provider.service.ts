@@ -12,9 +12,9 @@ export class GeminiImageProvider {
     negativeConstraints?: string;
     temperature?: number;
   }): Promise<Buffer> {
-    const apiKey = this.config.get<string>("GEMINI_API_KEY") || this.config.get<string>("OPENAI_API_KEY"); // Fallback check
+    const apiKey = this.config.get<string>("GEMINI_API_KEY");
     if (!apiKey) {
-      this.logger.error("GEMINI_API_KEY is not configured.");
+      this.logger.warn("GEMINI_API_KEY is not configured.");
       throw new InternalServerErrorException("GEMINI_API_KEY is not configured");
     }
 

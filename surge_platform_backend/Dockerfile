@@ -1,40 +1,40 @@
 # -----------------------------
 # Stage 1: Build
 # -----------------------------
-FROM node:20-alpine AS builder
+FROM oven/bun:1-alpine AS builder
 
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY package.json bun.lock ./
 
-# Install all dependencies (including dev dependencies)
-RUN npm ci
+# Install all dependencies
+RUN bun install --frozen-lockfile
 
 # Copy project files
 COPY . .
 
 # Generate Prisma Client
-RUN npx prisma generate
+RUN bun run prisma generate
 
 # Build NestJS application
-RUN npm run build
+RUN bun run build
 
 
 # -----------------------------
 # Stage 2: Production
 # -----------------------------
-FROM node:20-alpine
+FROM oven/bun:1-alpine
 
 WORKDIR /app
 
 ENV NODE_ENV=production
 
 # Copy package files
-COPY package*.json ./
+COPY package.json bun.lock ./
 
 # Install only production dependencies
-RUN npm ci --omit=dev
+RUN bun install --production --frozen-lockfile
 
 # Copy Prisma engine and generated client
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
@@ -44,11 +44,11 @@ COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 
-# Copy templates if your project uses them
+# Copy templates
 COPY --from=builder /app/templates ./templates
 
 # Expose application port
 EXPOSE 3030
 
-# Start application
-CMD ["node", "dist/main.js"]
+# Start application with Bun
+CMD ["bun", "dist/main.js"]

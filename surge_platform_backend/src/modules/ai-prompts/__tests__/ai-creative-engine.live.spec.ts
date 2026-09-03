@@ -26,7 +26,14 @@ interface GeneratedContent {
   socialPlainText: string;
 }
 
-const describeLive = process.env.OPENAI_API_KEY ? describe : describe.skip;
+const isLiveConfigured = Boolean(
+  process.env.RUN_LIVE_TESTS === "true" &&
+    process.env.OPENAI_API_KEY &&
+    !process.env.OPENAI_API_KEY.includes("testdummy") &&
+    !process.env.OPENAI_API_KEY.includes("placeholder"),
+);
+
+const describeLive = isLiveConfigured ? describe : describe.skip;
 
 describeLive("AI Creative Engine live E2E integration", () => {
   jest.setTimeout(240_000);

@@ -103,10 +103,12 @@ export class WorkspacesController {
   async updateQueueConfig(
     @Param("workspaceId") workspaceId: string,
     @Body() dto: QueueConfigDto,
+    @GetUser() user: AuthenticatedUser,
   ) {
     const updated = await this.workspacesService.updateQueueConfig(
       workspaceId,
       dto,
+      user,
     );
     // notify scheduler to reschedule repeatable jobs
     await this.scheduler.onWorkspaceConfigChange(workspaceId);
@@ -120,9 +122,14 @@ export class WorkspacesController {
   async toggleAutoPost(
     @Param("workspaceId") workspaceId: string,
     @Body() dto: AutoPostToggleDto,
+    @GetUser() user: AuthenticatedUser,
   ) {
-    return this.workspacesService.updateQueueConfig(workspaceId, {
-      autoPost: dto.autoPost,
-    });
+    return this.workspacesService.updateQueueConfig(
+      workspaceId,
+      {
+        autoPost: dto.autoPost,
+      },
+      user,
+    );
   }
 }

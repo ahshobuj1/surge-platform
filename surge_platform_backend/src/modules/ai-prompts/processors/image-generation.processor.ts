@@ -25,20 +25,39 @@ export class ImageGenerationProcessor {
     });
     if (!draft || !draft.imageConcept) throw new Error(`Draft ${draftId} or imageConcept not found`);
 
-    const imageBuffer = await this.gemini.generateImage({
-      prompt: `${draft.imageConcept}. Caption: ${draft.imageCaption || ""}`,
-      negativeConstraints: draft.negativeConstraints || "photo, color, realistic",
-      temperature: 0.4, // Strict Temp 0.4
-    });
+    let imageBuffer: Buffer;
+    let provider = "gemini";
+
+    try {
+      imageBuffer = await this.gemini.generateImage({
+        prompt: `${draft.imageConcept}. Caption: ${draft.imageCaption || ""}`,
+        negativeConstraints:
+          draft.negativeConstraints || "photo, color, realistic",
+        temperature: 0.4, // Strict Temp 0.4
+      });
+    } catch (err: any) {
+      this.logger.warn(
+        `Gemini image generation failed: ${err.message}. Using resilient fallback asset.`,
+      );
+      imageBuffer = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "base64",
+      );
+      provider = "fallback";
+    }
 
     const objectName = `workspaces/${draft.workspaceId}/assets/${Date.now()}-cartoon.png`;
-    const presignedUrl = await this.storage.uploadBuffer(objectName, imageBuffer, "image/png");
+    const presignedUrl = await this.storage.uploadBuffer(
+      objectName,
+      imageBuffer,
+      "image/png",
+    );
 
     await this.prisma.generatedDraft.update({
       where: { id: draftId },
       data: {
         imageUrl: presignedUrl,
-        imageProvider: "gemini",
+        imageProvider: provider,
       },
     });
 

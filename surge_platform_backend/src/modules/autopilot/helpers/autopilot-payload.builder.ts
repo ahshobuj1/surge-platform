@@ -34,11 +34,13 @@ export function buildAutopilotDispatchPayload(
 
   return {
     channel: channel.platform,
+    channelId: channel.id,
     title: "Surge Autopilot Digest",
     content,
     images,
     credentials: parseChannelCredentials(channel, logger, encryptionService),
     metadata: {
+      channelId: channel.id,
       draftId: draft.id,
       workspaceId: draft.workspaceId,
       imageProvider: draft.imageProvider ?? undefined,

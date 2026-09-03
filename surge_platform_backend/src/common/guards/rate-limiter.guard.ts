@@ -26,14 +26,30 @@ export class RateLimiterGuard implements CanActivate {
     ) || { limit: 10, ttlMs: 60000 };
 
     const req = context.switchToHttp().getRequest();
-    const clientIp =
+    const rawIp =
       req.headers["x-forwarded-for"] ||
       req.socket?.remoteAddress ||
       "127.0.0.1";
+    const clientIp =
+      typeof rawIp === "string"
+        ? rawIp.split(",")[0].trim()
+        : Array.isArray(rawIp)
+          ? rawIp[0]
+          : "127.0.0.1";
     const route = req.route?.path || req.url;
     const key = `${clientIp}:${route}`;
 
     const now = Date.now();
+
+    // Prevent memory leaks: periodically clean expired entries when map grows
+    if (this.hits.size > 2000) {
+      for (const [k, v] of this.hits.entries()) {
+        if (now > v.resetTime) {
+          this.hits.delete(k);
+        }
+      }
+    }
+
     const record = this.hits.get(key);
 
     if (!record || now > record.resetTime) {

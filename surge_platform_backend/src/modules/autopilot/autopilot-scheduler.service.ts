@@ -43,6 +43,13 @@ export class AutopilotSchedulerService implements OnModuleInit {
 
     await this.removeWorkspaceJobs(workspaceId);
 
+    const ws = await this.prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { timezone: true },
+    });
+    const tz =
+      ws?.timezone || this.config.get<string>("WORKSPACE_TIMEZONE") || "UTC";
+
     for (const [index, postingTime] of postingTimes.entries()) {
       if (!postingTime?.trim()) continue;
 
@@ -62,7 +69,7 @@ export class AutopilotSchedulerService implements OnModuleInit {
           removeOnFail: false,
           repeat: {
             pattern: cronExpression,
-            tz: this.config.get<string>("WORKSPACE_TIMEZONE") || "UTC",
+            tz,
           },
         },
       );

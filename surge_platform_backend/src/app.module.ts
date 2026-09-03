@@ -14,7 +14,7 @@ import { MailerModule } from "@nestjs-modules/mailer";
 import { UsersModule } from "./users/users.module";
 import { CompaniesModule } from "./modules/companies/companies.module";
 import { WorkspacesModule } from "./modules/workspaces/workspaces.module";
-import { RssFeedsModule } from "./modules/rss-feeds/rss-feeds.module";
+import { HealthModule } from "./health/health.module";
 import { RawPostsModule } from "./modules/raw-posts/raw-posts.module";
 import { AiPromptsModule } from "./modules/ai-prompts/ai-prompts.module";
 import { GeneratedDraftsModule } from "./modules/generated-drafts/generated-drafts.module";
@@ -52,7 +52,7 @@ import { ToneProfilesModule } from "./modules/tone-profiles/tone-profiles.module
     UsersModule,
     CompaniesModule,
     WorkspacesModule,
-    RssFeedsModule,
+    HealthModule,
     RawPostsModule,
     AiPromptsModule,
     GeneratedDraftsModule,
@@ -73,7 +73,6 @@ import { ToneProfilesModule } from "./modules/tone-profiles/tone-profiles.module
       provide: APP_INTERCEPTOR,
       useClass: HttpLoggingInterceptor,
     },
-    Reflector,
   ],
 })
 export class AppModule implements NestModule {

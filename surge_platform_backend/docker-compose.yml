@@ -23,19 +23,20 @@ services:
         networks:
             - surge_platform_network
 
-    minio:
-        image: minio/minio:latest
-        container_name: surge_platform_minio
+    rustfs:
+        image: rustfs/rustfs:latest
+        container_name: surge_platform_rustfs
         restart: unless-stopped
         environment:
-            MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
-            MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
-        command: server /data --console-address ":9001"
+            RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:-rustfsadmin}
+            RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:-rustfsadmin}
+            RUSTFS_CONSOLE_ENABLE: "true"
+        command: /data
         ports:
             - '9010:9000'
             - '9011:9001'
         volumes:
-            - minio_data:/data
+            - rustfs_data:/data
         networks:
             - surge_platform_network
 
@@ -48,6 +49,6 @@ volumes:
     surge_platform_data:
         driver: local
         name: surge_platform_data
-    minio_data:
+    rustfs_data:
         driver: local
-        name: minio_data
+        name: rustfs_data

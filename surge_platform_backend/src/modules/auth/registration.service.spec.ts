@@ -1,6 +1,11 @@
 import { RegistrationService } from "./registration.service";
 import * as bcrypt from "bcryptjs";
 
+jest.mock("bcryptjs", () => ({
+  compare: jest.fn(),
+  hash: jest.fn(),
+}));
+
 describe("RegistrationService", () => {
   let service: RegistrationService;
   let prisma: any;
@@ -74,7 +79,7 @@ describe("RegistrationService", () => {
   });
 
   it("creates a default company and workspace after email verification", async () => {
-    jest.spyOn(bcrypt, "compare").mockResolvedValue(true as never);
+    (bcrypt.compare as jest.Mock).mockResolvedValue(true as never);
 
     prisma.user.findUnique.mockResolvedValueOnce({
       id: "user-1",

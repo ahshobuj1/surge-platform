@@ -27,10 +27,15 @@ export class ArticlePolishingProcessor {
     });
     if (!draft || !draft.rawContent) throw new Error(`Draft ${draftId} or rawContent not found`);
 
-    const toneProfile = await this.prisma.toneProfile.findFirst({
-      where: { name: { equals: tone, mode: "insensitive" } },
-      include: { stepTwoPolishingPrompt: true },
-    });
+    const toneProfile = draft.toneProfileId
+      ? await this.prisma.toneProfile.findUnique({
+          where: { id: draft.toneProfileId },
+          include: { stepTwoPolishingPrompt: true },
+        })
+      : await this.prisma.toneProfile.findFirst({
+          where: { name: { equals: tone, mode: "insensitive" } },
+          include: { stepTwoPolishingPrompt: true },
+        });
 
     const brandVariables = await resolveWorkspaceBrandVariables(this.prisma, draft.workspaceId);
 

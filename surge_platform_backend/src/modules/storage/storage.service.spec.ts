@@ -1,20 +1,23 @@
 import { ConfigService } from "@nestjs/config";
 import { StorageService } from "./storage.service";
 
-const presignedPutObject = jest.fn();
-const presignedGetObject = jest.fn();
-const bucketExists = jest.fn();
-const makeBucket = jest.fn();
-const putObject = jest.fn();
+const mockSend = jest.fn();
+const mockGetSignedUrl = jest.fn();
 
-jest.mock("minio", () => ({
-  Client: jest.fn().mockImplementation(() => ({
-    presignedPutObject,
-    presignedGetObject,
-    bucketExists,
-    makeBucket,
-    putObject,
-  })),
+jest.mock("@aws-sdk/client-s3", () => {
+  return {
+    S3Client: jest.fn().mockImplementation(() => ({
+      send: mockSend,
+    })),
+    PutObjectCommand: jest.fn().mockImplementation((args) => args),
+    GetObjectCommand: jest.fn().mockImplementation((args) => args),
+    HeadBucketCommand: jest.fn().mockImplementation((args) => args),
+    CreateBucketCommand: jest.fn().mockImplementation((args) => args),
+  };
+});
+
+jest.mock("@aws-sdk/s3-request-presigner", () => ({
+  getSignedUrl: (...args: any[]) => mockGetSignedUrl(...args),
 }));
 
 describe("StorageService", () => {
@@ -40,7 +43,7 @@ describe("StorageService", () => {
   });
 
   it("returns a presigned upload URL for a new object", async () => {
-    presignedPutObject.mockResolvedValue("https://example.com/upload");
+    mockGetSignedUrl.mockResolvedValue("https://example.com/upload");
 
     const result = await service.generatePresignedUploadUrl({
       contentType: "image/png",

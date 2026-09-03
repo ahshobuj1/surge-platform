@@ -28,13 +28,21 @@ export class ArticleWritingProcessor {
     });
     if (!group) throw new Error(`Article Group ${groupId} not found`);
 
-    const toneProfile = toneProfileId
+    const isUuid = (val: any) =>
+      typeof val === "string" &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        val,
+      );
+
+    const toneProfile = isUuid(toneProfileId)
       ? await this.prisma.toneProfile.findUnique({
           where: { id: toneProfileId },
           include: { stepOneRawDraftPrompt: true },
         })
       : await this.prisma.toneProfile.findFirst({
-          where: { name: { equals: tone, mode: "insensitive" } },
+          where: {
+            name: { equals: toneProfileId || tone, mode: "insensitive" },
+          },
           include: { stepOneRawDraftPrompt: true },
         });
 
@@ -102,15 +110,18 @@ Return a JSON response with keys: title, blogPostContent.`;
       };
     }
 
+    const validToneProfileId =
+      toneProfile?.id ?? (isUuid(toneProfileId) ? toneProfileId : null);
+
     const draft = await this.prisma.generatedDraft.create({
       data: {
         workspaceId: group.workspaceId,
-        toneProfileId,
+        toneProfileId: validToneProfileId,
         groupId,
         status: "RAW_DRAFT",
         rawContent: parsed.blogPostContent,
         blogPostContent: parsed.blogPostContent, // legacy map
-        editorState: { title: parsed.title },
+        editorState: { title: parsed.title, tone },
         generationType: "batch_digest",
       },
     });
