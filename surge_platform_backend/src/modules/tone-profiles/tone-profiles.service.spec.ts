@@ -14,8 +14,16 @@ describe("ToneProfilesService", () => {
     stepOneRawDraftPrompt: { title: "P1", systemPrompt: "S1", template: "T1" },
     stepTwoPolishingPrompt: { title: "P2", systemPrompt: "S2", template: "T2" },
     stepThreeImagePrompt: { title: "P3", systemPrompt: "S3", template: "T3" },
-    stepCompanySocialPrompt: { title: "PC", systemPrompt: "SC", template: "TC" },
-    stepPersonalSocialPrompt: { title: "PS", systemPrompt: "SS", template: "TS" },
+    stepCompanySocialPrompt: {
+      title: "PC",
+      systemPrompt: "SC",
+      template: "TC",
+    },
+    stepPersonalSocialPrompt: {
+      title: "PS",
+      systemPrompt: "SS",
+      template: "TS",
+    },
   };
 
   beforeEach(async () => {
@@ -78,16 +86,35 @@ describe("ToneProfilesService", () => {
     const createDto = {
       name: "happy",
       stepGroupingPrompt: { title: "PG", systemPrompt: "SG", template: "TG" },
-      stepOneRawDraftPrompt: { title: "P1", systemPrompt: "S1", template: "T1" },
-      stepTwoPolishingPrompt: { title: "P2", systemPrompt: "S2", template: "T2" },
+      stepOneRawDraftPrompt: {
+        title: "P1",
+        systemPrompt: "S1",
+        template: "T1",
+      },
+      stepTwoPolishingPrompt: {
+        title: "P2",
+        systemPrompt: "S2",
+        template: "T2",
+      },
       stepThreeImagePrompt: { title: "P3", systemPrompt: "S3", template: "T3" },
-      stepCompanySocialPrompt: { title: "PC", systemPrompt: "SC", template: "TC" },
-      stepPersonalSocialPrompt: { title: "PS", systemPrompt: "SS", template: "TS" },
+      stepCompanySocialPrompt: {
+        title: "PC",
+        systemPrompt: "SC",
+        template: "TC",
+      },
+      stepPersonalSocialPrompt: {
+        title: "PS",
+        systemPrompt: "SS",
+        template: "TS",
+      },
     };
 
     it("should create a tone profile and nested prompts", async () => {
       prisma.toneProfile.findUnique.mockResolvedValue(null);
-      prisma.toneProfile.create.mockResolvedValue({ id: "tp-2", name: "happy" });
+      prisma.toneProfile.create.mockResolvedValue({
+        id: "tp-2",
+        name: "happy",
+      });
       prisma.stepGroupingPrompt.create.mockResolvedValue({ id: "sg" });
       prisma.stepOneRawDraftPrompt.create.mockResolvedValue({ id: "s1" });
       prisma.stepTwoPolishingPrompt.create.mockResolvedValue({ id: "s2" });
@@ -97,7 +124,9 @@ describe("ToneProfilesService", () => {
 
       const res = await service.create(createDto);
       expect(res.name).toBe("happy");
-      expect(prisma.toneProfile.create).toHaveBeenCalledWith({ data: { name: "happy" } });
+      expect(prisma.toneProfile.create).toHaveBeenCalledWith({
+        data: { name: "happy" },
+      });
     });
 
     it("should throw BadRequestException if tone profile name exists", async () => {
@@ -115,7 +144,9 @@ describe("ToneProfilesService", () => {
 
       const res = await service.remove("tp-1");
       expect(res).toEqual(mockToneProfile);
-      expect(prisma.toneProfile.delete).toHaveBeenCalledWith({ where: { id: "tp-1" } });
+      expect(prisma.toneProfile.delete).toHaveBeenCalledWith({
+        where: { id: "tp-1" },
+      });
     });
   });
 });

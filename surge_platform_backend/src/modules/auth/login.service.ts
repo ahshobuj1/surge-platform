@@ -61,8 +61,9 @@ export class LoginService {
 
     const payload = { sub: user.id, role: user.role };
     const accessToken = this.jwtService.sign(payload);
-    const refreshToken =
-      await this.refreshTokenService.generateRefreshToken(user.id);
+    const refreshToken = await this.refreshTokenService.generateRefreshToken(
+      user.id,
+    );
 
     return {
       accessToken,

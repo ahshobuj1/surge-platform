@@ -35,9 +35,7 @@ export async function resolvePublishingChannels(
   }
 
   if (requestedChannels?.length) {
-    const foundPlatforms = new Set(
-      channels.map((channel) => channel.platform),
-    );
+    const foundPlatforms = new Set(channels.map((channel) => channel.platform));
     const missing = requestedChannels.filter(
       (channel) => !foundPlatforms.has(channel),
     );

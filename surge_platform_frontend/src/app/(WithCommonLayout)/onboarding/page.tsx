@@ -10,6 +10,9 @@ import { StepConnectPlatforms } from "@/app/component/onboarding/StepConnectCMS"
 import { StepSchedule, ScheduleData } from "@/app/component/onboarding/StepSchedule";
 import { StepPaywall, PlanTier, BillingInterval, PLAN_TIERS, PlanId } from "@/app/component/onboarding/StepPaywall";
 import { StepCheckout } from "@/app/component/onboarding/StepCheckout";
+import { useWorkspace } from "@/lib/context/WorkspaceContext";
+import { api } from "@/lib/api";
+import type { ValidatedFeedInfo } from "@/app/component/onboarding/StepAddFeeds";
 
 const STEP_LABELS = ["Add Feeds", "Preferences", "Connect Platforms", "Schedule"];
 
@@ -71,8 +74,12 @@ function OnboardingContent({ onComplete }: OnboardingProps) {
     router.push(`/onboarding?${params.toString()}`, { scroll: false });
   };
 
+  const { activeWorkspace, workspaces } = useWorkspace();
+  const targetWorkspaceId = activeWorkspace?.id || workspaces[0]?.id;
+
   // Onboarding aggregated state
-  const [feedUrl, setFeedUrl] = useState<string>("https://example.com/feed.xml");
+  const [feedUrl, setFeedUrl] = useState<string>("");
+  const [feedTitle, setFeedTitle] = useState<string>("");
   const [preferences, setPreferences] = useState<PreferencesData>({
     tone: "Professional & Objective",
     audience: "",
@@ -85,8 +92,11 @@ function OnboardingContent({ onComplete }: OnboardingProps) {
   const [billingInterval, setBillingInterval] = useState<BillingInterval>("monthly");
 
   // Step transitions
-  const handleFeedContinue = (feedData?: { url: string; isValid: boolean }) => {
-    if (feedData?.url) setFeedUrl(feedData.url);
+  const handleFeedContinue = (feedData?: ValidatedFeedInfo) => {
+    if (feedData?.url) {
+      setFeedUrl(feedData.url);
+      if (feedData.title) setFeedTitle(feedData.title);
+    }
     navigateToStep(2);
   };
 
@@ -125,15 +135,23 @@ function OnboardingContent({ onComplete }: OnboardingProps) {
   };
 
   const handleFinalPaymentConfirm = async () => {
-    // Simulate payment confirmation delay
-    await new Promise((resolve) => setTimeout(resolve, 1200));
+    try {
+      if (targetWorkspaceId && feedUrl) {
+        await api.post(`/workspaces/${targetWorkspaceId}/rss-sources`, {
+          feedUrl,
+          name: feedTitle || undefined,
+        });
+      }
+    } catch (err: unknown) {
+      console.warn("Could not automatically create workspace RSS feed:", err);
+    }
 
     if (onComplete) {
       onComplete();
     } else {
       setTimeout(() => {
         router.push("/dashboard");
-      }, 1500);
+      }, 1200);
     }
   };
 
@@ -160,6 +178,7 @@ function OnboardingContent({ onComplete }: OnboardingProps) {
               <StepAddFeeds
                 onContinue={handleFeedContinue}
                 initialUrl={feedUrl}
+                workspaceId={targetWorkspaceId}
               />
             )}
             {currentStep === 2 && (

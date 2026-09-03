@@ -1,7 +1,13 @@
 import { BadRequestException } from "@nestjs/common";
 import { URL } from "url";
 
-const BLOCKED_HOSTNAMES = ["localhost", "127.0.0.1", "0.0.0.0", "169.254.169.254", "::1"];
+const BLOCKED_HOSTNAMES = [
+  "localhost",
+  "127.0.0.1",
+  "0.0.0.0",
+  "169.254.169.254",
+  "::1",
+];
 
 export function validateUrlForSsrf(inputUrl: string): URL {
   let parsedUrl: URL;
@@ -18,11 +24,17 @@ export function validateUrlForSsrf(inputUrl: string): URL {
   const hostname = parsedUrl.hostname.toLowerCase();
 
   if (BLOCKED_HOSTNAMES.includes(hostname)) {
-    throw new BadRequestException("Access to local or private IP metadata endpoints is forbidden.");
+    throw new BadRequestException(
+      "Access to local or private IP metadata endpoints is forbidden.",
+    );
   }
 
   // Block private RFC 1918 IPv4 ranges
-  if (/^127\./.test(hostname) || /^10\./.test(hostname) || /^169\.254\./.test(hostname)) {
+  if (
+    /^127\./.test(hostname) ||
+    /^10\./.test(hostname) ||
+    /^169\.254\./.test(hostname)
+  ) {
     throw new BadRequestException("Access to private IP ranges is forbidden.");
   }
 

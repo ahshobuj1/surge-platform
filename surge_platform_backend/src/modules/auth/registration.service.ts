@@ -80,9 +80,8 @@ export class RegistrationService {
 
     if (!user) throw new BadRequestException("User not found");
 
-    const { company, workspace } = await this.prisma.$transaction(
-      async (tx) =>
-        provisionVerifiedUserAccount(tx, user.id, verification.id),
+    const { company, workspace } = await this.prisma.$transaction(async (tx) =>
+      provisionVerifiedUserAccount(tx, user.id, verification.id),
     );
 
     const payload = { sub: user.id, role: user.role };

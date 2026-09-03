@@ -1,7 +1,10 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../../../common/context/prisma.service";
 import { generateLlmCompletion } from "../helpers/ai-prompts-llm.helper";
-import { interpolateTemplate, resolveWorkspaceBrandVariables } from "../helpers/ai-prompts-digest.helper";
+import {
+  interpolateTemplate,
+  resolveWorkspaceBrandVariables,
+} from "../helpers/ai-prompts-digest.helper";
 import OpenAI from "openai";
 import { ConfigService } from "@nestjs/config";
 import { Job } from "bullmq";
@@ -13,16 +16,19 @@ export class PersonalSocialProcessor {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
-  ) { }
+  ) {}
 
   async process(job: Job<any>) {
     const { draftId, model = "gpt-4o", tone = "professional" } = job.data;
-    this.logger.log(`Generating personal founder social post for Draft: ${draftId}`);
+    this.logger.log(
+      `Generating personal founder social post for Draft: ${draftId}`,
+    );
 
     const draft = await this.prisma.generatedDraft.findUnique({
       where: { id: draftId },
     });
-    if (!draft || !draft.polishedContent) throw new Error(`Draft ${draftId} or polishedContent not found`);
+    if (!draft || !draft.polishedContent)
+      throw new Error(`Draft ${draftId} or polishedContent not found`);
 
     const toneProfile = draft.toneProfileId
       ? await this.prisma.toneProfile.findUnique({
@@ -34,9 +40,13 @@ export class PersonalSocialProcessor {
           include: { stepPersonalSocialPrompt: true },
         });
 
-    const brandVariables = await resolveWorkspaceBrandVariables(this.prisma, draft.workspaceId);
+    const brandVariables = await resolveWorkspaceBrandVariables(
+      this.prisma,
+      draft.workspaceId,
+    );
 
-    let systemPrompt = "You are a tech founder and leader. You write thoughtful, conversational thoughts on industry trends.";
+    let systemPrompt =
+      "You are a tech founder and leader. You write thoughtful, conversational thoughts on industry trends.";
     let userPrompt = `Create a 2-4 sentence first-person founder/leader social media share post based on the article content.
 Requirements:
 1. Written in first person ("I" or "we").
@@ -51,8 +61,14 @@ Return ONLY the post text.`;
         blogTitle: editorState.title || (draft as any).topicTitle || "",
         tone,
       };
-      systemPrompt = interpolateTemplate(toneProfile.stepPersonalSocialPrompt.systemPrompt, mergedVariables);
-      userPrompt = interpolateTemplate(toneProfile.stepPersonalSocialPrompt.template, mergedVariables);
+      systemPrompt = interpolateTemplate(
+        toneProfile.stepPersonalSocialPrompt.systemPrompt,
+        mergedVariables,
+      );
+      userPrompt = interpolateTemplate(
+        toneProfile.stepPersonalSocialPrompt.template,
+        mergedVariables,
+      );
     }
 
     const openAiKey = this.config.get<string>("OPENAI_API_KEY");
@@ -76,7 +92,9 @@ Return ONLY the post text.`;
       },
     });
 
-    this.logger.log(`Successfully completed entire sequential pipeline for Draft ${draftId}. Status set to READY_FOR_REVIEW.`);
+    this.logger.log(
+      `Successfully completed entire sequential pipeline for Draft ${draftId}. Status set to READY_FOR_REVIEW.`,
+    );
 
     return { draftId, personalSocialPost: personalPost };
   }

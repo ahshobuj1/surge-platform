@@ -1,7 +1,10 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../../../common/context/prisma.service";
 import { generateLlmCompletion } from "../helpers/ai-prompts-llm.helper";
-import { interpolateTemplate, resolveWorkspaceBrandVariables } from "../helpers/ai-prompts-digest.helper";
+import {
+  interpolateTemplate,
+  resolveWorkspaceBrandVariables,
+} from "../helpers/ai-prompts-digest.helper";
 import { extractJsonString } from "../helpers/ai-prompts-parser.util";
 import OpenAI from "openai";
 import { ConfigService } from "@nestjs/config";
@@ -16,10 +19,15 @@ export class ArticleWritingProcessor {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     @InjectQueue("content-generation-queue") private readonly queue: Queue,
-  ) { }
+  ) {}
 
   async process(job: Job<any>) {
-    const { groupId, toneProfileId, model = "gpt-4o", tone = "professional" } = job.data;
+    const {
+      groupId,
+      toneProfileId,
+      model = "gpt-4o",
+      tone = "professional",
+    } = job.data;
     this.logger.log(`Running Article Writing for group: ${groupId}`);
 
     const group = await this.prisma.articleGroup.findUnique({
@@ -46,9 +54,13 @@ export class ArticleWritingProcessor {
           include: { stepOneRawDraftPrompt: true },
         });
 
-    const brandVariables = await resolveWorkspaceBrandVariables(this.prisma, group.workspaceId);
+    const brandVariables = await resolveWorkspaceBrandVariables(
+      this.prisma,
+      group.workspaceId,
+    );
 
-    let systemPrompt = "You are an expert copywriter. You follow structural guidelines and length boundaries strictly.";
+    let systemPrompt =
+      "You are an expert copywriter. You follow structural guidelines and length boundaries strictly.";
     let userPrompt = `Write a structured blog article based on the following theme and editorial angle.
 Theme: ${group.sharedTheme}
 Angle: ${group.editorialAngle}
@@ -73,13 +85,28 @@ Return a JSON response with keys: title, blogPostContent.`;
         sharedTheme: group.sharedTheme,
         angle: group.editorialAngle,
         editorialAngle: group.editorialAngle,
-        articleUrls: rawPosts.map((p: any) => p.url || p.urlHash).filter(Boolean).join(", "),
-        articleTitles: rawPosts.map((p) => p.title).filter(Boolean).join(", "),
-        articleSources: rawPosts.map((p) => p.sourceName || "Source").filter(Boolean).join(", "),
+        articleUrls: rawPosts
+          .map((p: any) => p.url || p.urlHash)
+          .filter(Boolean)
+          .join(", "),
+        articleTitles: rawPosts
+          .map((p) => p.title)
+          .filter(Boolean)
+          .join(", "),
+        articleSources: rawPosts
+          .map((p) => p.sourceName || "Source")
+          .filter(Boolean)
+          .join(", "),
         articleCount: String(rawPosts.length),
       };
-      systemPrompt = interpolateTemplate(toneProfile.stepOneRawDraftPrompt.systemPrompt, mergedVariables);
-      userPrompt = interpolateTemplate(toneProfile.stepOneRawDraftPrompt.template, mergedVariables);
+      systemPrompt = interpolateTemplate(
+        toneProfile.stepOneRawDraftPrompt.systemPrompt,
+        mergedVariables,
+      );
+      userPrompt = interpolateTemplate(
+        toneProfile.stepOneRawDraftPrompt.template,
+        mergedVariables,
+      );
     }
 
     const openAiKey = this.config.get<string>("OPENAI_API_KEY");
@@ -103,7 +130,9 @@ Return a JSON response with keys: title, blogPostContent.`;
         throw new Error("Missing blogPostContent in LLM output");
       }
     } catch (parseErr: any) {
-      this.logger.warn(`Article writing JSON parse warning: ${parseErr.message}. Using full LLM text.`);
+      this.logger.warn(
+        `Article writing JSON parse warning: ${parseErr.message}. Using full LLM text.`,
+      );
       parsed = {
         title: group.sharedTheme || "Generated Article",
         blogPostContent: llmOutput,
@@ -133,7 +162,9 @@ Return a JSON response with keys: title, blogPostContent.`;
       tone,
     });
 
-    this.logger.log(`Completed Raw Article Writing for Draft ${draft.id}. Enqueued article-polishing.`);
+    this.logger.log(
+      `Completed Raw Article Writing for Draft ${draft.id}. Enqueued article-polishing.`,
+    );
 
     return { draftId: draft.id };
   }

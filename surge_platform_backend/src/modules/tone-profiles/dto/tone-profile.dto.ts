@@ -31,7 +31,9 @@ export class PromptConfigDto {
 }
 
 export class CreateToneProfileDto {
-  @ApiProperty({ description: "Unique name of the tone profile, e.g. confident" })
+  @ApiProperty({
+    description: "Unique name of the tone profile, e.g. confident",
+  })
   @IsString()
   @IsNotEmpty()
   name: string;

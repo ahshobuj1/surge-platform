@@ -27,7 +27,9 @@ describe("PublishingChannelsService", () => {
           provide: EncryptionService,
           useValue: {
             encrypt: jest.fn((val) => JSON.stringify(val)),
-            decrypt: jest.fn((val) => (typeof val === "string" ? JSON.parse(val) : val)),
+            decrypt: jest.fn((val) =>
+              typeof val === "string" ? JSON.parse(val) : val,
+            ),
           },
         },
       ],

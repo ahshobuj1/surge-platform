@@ -5,9 +5,7 @@ import { WorkspaceAnalyticsService } from "./workspace-analytics.service";
 @Controller("workspaces")
 @UseGuards(JwtAuthGuard)
 export class WorkspaceAnalyticsController {
-  constructor(
-    private readonly analyticsService: WorkspaceAnalyticsService,
-  ) {}
+  constructor(private readonly analyticsService: WorkspaceAnalyticsService) {}
 
   @Get(":workspaceId/analytics")
   getAnalytics(@Param("workspaceId") workspaceId: string) {

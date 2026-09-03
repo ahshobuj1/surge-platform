@@ -9,7 +9,10 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { ToneProfilesService } from "./tone-profiles.service";
-import { CreateToneProfileDto, UpdateToneProfileDto } from "./dto/tone-profile.dto";
+import {
+  CreateToneProfileDto,
+  UpdateToneProfileDto,
+} from "./dto/tone-profile.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
 import { Roles } from "../auth/decorators/roles.decorator";
@@ -30,7 +33,9 @@ export class ToneProfilesController {
 
   @Get()
   @Roles("admin", "customer")
-  @ApiOperation({ summary: "List all active tone profiles (customers receive id & name only)" })
+  @ApiOperation({
+    summary: "List all active tone profiles (customers receive id & name only)",
+  })
   @ApiOkResponse({ description: "List of tone profiles returned successfully" })
   async findAll(@GetUser("role") role: string) {
     const profiles = await this.toneProfilesService.findAll();
@@ -43,7 +48,9 @@ export class ToneProfilesController {
 
   @Get(":id")
   @Roles("admin", "customer")
-  @ApiOperation({ summary: "Get tone profile details (customers receive id & name only)" })
+  @ApiOperation({
+    summary: "Get tone profile details (customers receive id & name only)",
+  })
   @ApiOkResponse({ description: "Tone profile details returned successfully" })
   async findOne(@Param("id") id: string, @GetUser("role") role: string) {
     const profile = await this.toneProfilesService.findOne(id);

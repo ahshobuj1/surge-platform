@@ -21,8 +21,7 @@ export class MailtrapService {
   }
 
   private refreshConfig(): void {
-    this.token =
-      this.configService.get<string>("MAILTRAP_TOKEN")?.trim() || "";
+    this.token = this.configService.get<string>("MAILTRAP_TOKEN")?.trim() || "";
     this.fromEmail =
       this.configService.get<string>("MAILTRAP_FROM_EMAIL")?.trim() ||
       "verify@zerodraft.ai";
@@ -58,7 +57,9 @@ export class MailtrapService {
             const inboxes = JSON.parse(data);
             if (Array.isArray(inboxes) && inboxes.length > 0 && inboxes[0].id) {
               const discovered = String(inboxes[0].id);
-              this.logger.log(`Discovered Mailtrap Sandbox Inbox ID: ${discovered}`);
+              this.logger.log(
+                `Discovered Mailtrap Sandbox Inbox ID: ${discovered}`,
+              );
               resolve(discovered);
               return;
             }

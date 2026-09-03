@@ -23,7 +23,7 @@ export class RssSchedulerService
       this.config.get<string>("REDIS_URL") || "redis://127.0.0.1:6379";
     this.redis = new Redis(redisUrl);
     this.queue = new Queue("rss-fetch-queue", {
-      connection: this.redis as any,
+      connection: this.redis,
     });
   }
 

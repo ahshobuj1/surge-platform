@@ -18,7 +18,8 @@ describe("Sequential Pipeline End-To-End Unit Flow", () => {
 
   it("should correctly validate and flow data through pipeline helpers", () => {
     const raw = "Check <a href='https://google.com'>Google</a>";
-    const polished = "Check out <a href='https://google.com'>Google</a> immediately.";
+    const polished =
+      "Check out <a href='https://google.com'>Google</a> immediately.";
     const result = validateHyperlinksPreservation(raw, polished);
     expect(result.valid).toBe(true);
 

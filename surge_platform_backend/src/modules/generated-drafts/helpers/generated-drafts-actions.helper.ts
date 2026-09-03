@@ -30,7 +30,11 @@ export async function publishDraftAction(
   encryptionService?: EncryptionService,
 ) {
   const draft = await findAccessibleDraft(prisma, id, user);
-  assertCanManageDraft(draft.workspace.company.ownerId, user, draft.workspace.id);
+  assertCanManageDraft(
+    draft.workspace.company.ownerId,
+    user,
+    draft.workspace.id,
+  );
 
   const channels = await resolvePublishingChannels(
     prisma,
@@ -78,7 +82,11 @@ export async function scheduleDraftAction(
   dto: ScheduleGeneratedDraftDto,
 ) {
   const draft = await findAccessibleDraft(prisma, id, user);
-  assertCanManageDraft(draft.workspace.company.ownerId, user, draft.workspace.id);
+  assertCanManageDraft(
+    draft.workspace.company.ownerId,
+    user,
+    draft.workspace.id,
+  );
 
   const scheduledAt = new Date(dto.scheduledAt);
   if (Number.isNaN(scheduledAt.getTime())) {

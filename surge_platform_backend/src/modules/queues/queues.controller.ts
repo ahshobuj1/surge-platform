@@ -34,7 +34,9 @@ export class QueuesController {
 
   @Get("failed")
   @Roles("admin")
-  @ApiOperation({ summary: "List failed jobs in content-generation-queue (Admin Only)" })
+  @ApiOperation({
+    summary: "List failed jobs in content-generation-queue (Admin Only)",
+  })
   @ApiOkResponse({ description: "Failed jobs returned successfully" })
   getFailedJobs() {
     return this.queuesService.getFailedJobs();
@@ -42,7 +44,9 @@ export class QueuesController {
 
   @Post("retry/:jobId")
   @Roles("admin")
-  @ApiOperation({ summary: "Retry a specific failed job in queue (Admin Only)" })
+  @ApiOperation({
+    summary: "Retry a specific failed job in queue (Admin Only)",
+  })
   @ApiOkResponse({ description: "Job retry execution started" })
   retryJob(@Param("jobId") jobId: string) {
     return this.queuesService.retryJob(jobId);
@@ -50,7 +54,9 @@ export class QueuesController {
 
   @Delete("clean")
   @Roles("admin")
-  @ApiOperation({ summary: "Clean completed and failed job histories (Admin Only)" })
+  @ApiOperation({
+    summary: "Clean completed and failed job histories (Admin Only)",
+  })
   @ApiOkResponse({ description: "Queue history cleaned successfully" })
   cleanHistory() {
     return this.queuesService.cleanHistory();

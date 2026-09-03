@@ -22,6 +22,6 @@ export class DispatcherController {
       requestedBy: userId,
     };
     // invoke dispatcher
-    return this.dispatcher.dispatch(payload as any);
+    return this.dispatcher.dispatch(payload);
   }
 }

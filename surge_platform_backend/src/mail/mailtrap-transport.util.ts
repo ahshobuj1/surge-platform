@@ -11,7 +11,9 @@ export async function sendViaHttps(
   const maxRetries = 3;
 
   const isSandbox = Boolean(inboxId);
-  const hostname = isSandbox ? "sandbox.api.mailtrap.io" : "send.api.mailtrap.io";
+  const hostname = isSandbox
+    ? "sandbox.api.mailtrap.io"
+    : "send.api.mailtrap.io";
   const path = isSandbox ? `/api/send/${inboxId}` : "/api/send";
 
   return new Promise((resolve, reject) => {

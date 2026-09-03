@@ -1,7 +1,10 @@
 import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../../common/context/prisma.service";
 import { generateLlmCompletion } from "../helpers/ai-prompts-llm.helper";
-import { interpolateTemplate, resolveWorkspaceBrandVariables } from "../helpers/ai-prompts-digest.helper";
+import {
+  interpolateTemplate,
+  resolveWorkspaceBrandVariables,
+} from "../helpers/ai-prompts-digest.helper";
 import { extractJsonString } from "../helpers/ai-prompts-parser.util";
 import OpenAI from "openai";
 import { ConfigService } from "@nestjs/config";
@@ -19,7 +22,12 @@ export class ArticleGroupingProcessor {
   ) {}
 
   async process(job: Job<any>) {
-    const { workspaceId, limit = 5, tone = "professional", model = "gpt-4o" } = job.data;
+    const {
+      workspaceId,
+      limit = 5,
+      tone = "professional",
+      model = "gpt-4o",
+    } = job.data;
     this.logger.log(`Running Article Grouping for workspace: ${workspaceId}`);
 
     try {
@@ -29,7 +37,9 @@ export class ArticleGroupingProcessor {
       });
 
       if (posts.length < 2) {
-        this.logger.warn(`Insufficient articles to group. Found: ${posts.length}`);
+        this.logger.warn(
+          `Insufficient articles to group. Found: ${posts.length}`,
+        );
         return { skipped: true, reason: "Insufficient articles to group" };
       }
 
@@ -37,10 +47,7 @@ export class ArticleGroupingProcessor {
       try {
         toneProfile = await this.prisma.toneProfile.findFirst({
           where: {
-            OR: [
-              { id: tone },
-              { name: { equals: tone, mode: "insensitive" } },
-            ],
+            OR: [{ id: tone }, { name: { equals: tone, mode: "insensitive" } }],
           },
           include: { stepGroupingPrompt: true },
         });
@@ -55,10 +62,14 @@ export class ArticleGroupingProcessor {
       );
 
       const context = posts
-        .map((p, idx) => `[Article ${idx + 1}] Title: ${p.title}\nContent: ${p.rawContent}`)
+        .map(
+          (p, idx) =>
+            `[Article ${idx + 1}] Title: ${p.title}\nContent: ${p.rawContent}`,
+        )
         .join("\n\n");
 
-      let systemPrompt = "You are an Article Grouping Bot. Categorize, cluster, and find the editorial link.";
+      let systemPrompt =
+        "You are an Article Grouping Bot. Categorize, cluster, and find the editorial link.";
       let userPrompt = `Analyze these articles and group them. Output a JSON with keys: sharedTheme (max 10 words) and editorialAngle (2-3 sentences explaining perspective).`;
 
       if (toneProfile?.stepGroupingPrompt?.isActive) {
@@ -66,8 +77,14 @@ export class ArticleGroupingProcessor {
           ...brandVariables,
           articleContext: context,
         };
-        systemPrompt = interpolateTemplate(toneProfile.stepGroupingPrompt.systemPrompt, mergedVariables);
-        userPrompt = interpolateTemplate(toneProfile.stepGroupingPrompt.template, mergedVariables);
+        systemPrompt = interpolateTemplate(
+          toneProfile.stepGroupingPrompt.systemPrompt,
+          mergedVariables,
+        );
+        userPrompt = interpolateTemplate(
+          toneProfile.stepGroupingPrompt.template,
+          mergedVariables,
+        );
       }
 
       const openAiKey = this.config.get<string>("OPENAI_API_KEY");
@@ -91,11 +108,17 @@ export class ArticleGroupingProcessor {
           throw new Error("Missing required keys in LLM output");
         }
       } catch (parseErr: any) {
-        this.logger.warn(`LLM JSON parse warning: ${parseErr.message}. Extracting fallback theme and angle.`);
+        this.logger.warn(
+          `LLM JSON parse warning: ${parseErr.message}. Extracting fallback theme and angle.`,
+        );
         const cleanText = llmOutput.replace(/^Sure[!\.,]?\s*/i, "").trim();
         parsed = {
-          sharedTheme: cleanText.split("\n")[0]?.substring(0, 80) || "Featured Article Group",
-          editorialAngle: cleanText.substring(0, 300) || "Analysis of recent workspace articles.",
+          sharedTheme:
+            cleanText.split("\n")[0]?.substring(0, 80) ||
+            "Featured Article Group",
+          editorialAngle:
+            cleanText.substring(0, 300) ||
+            "Analysis of recent workspace articles.",
         };
       }
 
@@ -124,11 +147,16 @@ export class ArticleGroupingProcessor {
         tone,
       });
 
-      this.logger.log(`Completed Article Grouping for workspace ${workspaceId}. Created Group ${group.id}.`);
+      this.logger.log(
+        `Completed Article Grouping for workspace ${workspaceId}. Created Group ${group.id}.`,
+      );
 
       return { groupId: group.id, count: posts.length };
     } catch (err: any) {
-      this.logger.error(`Article Grouping failed for workspace ${workspaceId}: ${err.message}`, err.stack);
+      this.logger.error(
+        `Article Grouping failed for workspace ${workspaceId}: ${err.message}`,
+        err.stack,
+      );
       throw err;
     }
   }

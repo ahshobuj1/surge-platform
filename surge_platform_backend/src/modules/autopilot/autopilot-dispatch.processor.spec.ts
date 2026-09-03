@@ -56,9 +56,7 @@ describe("AutopilotDispatchProcessor", () => {
 
     const encryptionService = {
       encrypt: jest.fn(),
-      decrypt: jest.fn((v: any) =>
-        typeof v === "string" ? JSON.parse(v) : v,
-      ),
+      decrypt: jest.fn((v: any) => (typeof v === "string" ? JSON.parse(v) : v)),
     };
 
     processor = new AutopilotDispatchProcessor(

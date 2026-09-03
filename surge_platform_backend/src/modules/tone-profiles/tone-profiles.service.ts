@@ -1,6 +1,13 @@
-import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
 import { PrismaService } from "../../common/context/prisma.service";
-import { CreateToneProfileDto, UpdateToneProfileDto } from "./dto/tone-profile.dto";
+import {
+  CreateToneProfileDto,
+  UpdateToneProfileDto,
+} from "./dto/tone-profile.dto";
 
 @Injectable()
 export class ToneProfilesService {
@@ -46,7 +53,9 @@ export class ToneProfilesService {
       where: { name: dto.name },
     });
     if (existing) {
-      throw new BadRequestException(`Tone profile with name '${dto.name}' already exists`);
+      throw new BadRequestException(
+        `Tone profile with name '${dto.name}' already exists`,
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -138,7 +147,9 @@ export class ToneProfilesService {
           where: { name: dto.name },
         });
         if (existingName && existingName.id !== id) {
-          throw new BadRequestException(`Tone profile with name '${dto.name}' already exists`);
+          throw new BadRequestException(
+            `Tone profile with name '${dto.name}' already exists`,
+          );
         }
 
         await tx.toneProfile.update({
@@ -239,7 +250,8 @@ export class ToneProfilesService {
           },
           create: {
             toneProfileId: id,
-            title: dto.stepCompanySocialPrompt.title ?? "Step Company Social Prompt",
+            title:
+              dto.stepCompanySocialPrompt.title ?? "Step Company Social Prompt",
             systemPrompt: dto.stepCompanySocialPrompt.systemPrompt ?? "",
             template: dto.stepCompanySocialPrompt.template ?? "",
             isActive: dto.stepCompanySocialPrompt.isActive ?? true,
@@ -259,7 +271,9 @@ export class ToneProfilesService {
           },
           create: {
             toneProfileId: id,
-            title: dto.stepPersonalSocialPrompt.title ?? "Step Personal Social Prompt",
+            title:
+              dto.stepPersonalSocialPrompt.title ??
+              "Step Personal Social Prompt",
             systemPrompt: dto.stepPersonalSocialPrompt.systemPrompt ?? "",
             template: dto.stepPersonalSocialPrompt.template ?? "",
             isActive: dto.stepPersonalSocialPrompt.isActive ?? true,

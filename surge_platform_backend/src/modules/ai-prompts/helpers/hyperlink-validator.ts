@@ -14,7 +14,8 @@ export function extractLinks(html: string): ExtractedLink[] {
   if (!html) return [];
   const links: ExtractedLink[] = [];
   // Match <a> tags and extract href + inner text
-  const aTagRegex = /<a\s+(?:[^>]*?\s+)?href=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  const aTagRegex =
+    /<a\s+(?:[^>]*?\s+)?href=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi;
   let match;
   while ((match = aTagRegex.exec(html)) !== null) {
     links.push({
@@ -41,7 +42,7 @@ export function validateHyperlinksPreservation(
 
   // Verify all raw links are present in polished links
   for (const rawLink of rawLinks) {
-    const found = polishedLinks.some(pl => pl.href === rawLink.href);
+    const found = polishedLinks.some((pl) => pl.href === rawLink.href);
     if (!found) {
       missingLinks.push(rawLink.href);
     }

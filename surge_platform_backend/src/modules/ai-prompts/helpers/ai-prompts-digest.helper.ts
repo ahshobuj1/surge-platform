@@ -31,10 +31,18 @@ export function interpolateTemplate(
     );
 
     if (!foundKey) {
-      if (normKey === "companybrandname" || normKey === "brandname" || normKey === "companyname") {
+      if (
+        normKey === "companybrandname" ||
+        normKey === "brandname" ||
+        normKey === "companyname"
+      ) {
         foundKey = Object.keys(variables).find((k) => {
           const nk = normalizeKey(k);
-          return nk === "companyname" || nk === "companybrandname" || nk === "brandname";
+          return (
+            nk === "companyname" ||
+            nk === "companybrandname" ||
+            nk === "brandname"
+          );
         });
       } else if (normKey === "companywebsite" || normKey === "website") {
         foundKey = Object.keys(variables).find((k) => {
@@ -50,7 +58,6 @@ export function interpolateTemplate(
 
     return match;
   });
-
 }
 
 export async function resolveWorkspaceBrandVariables(
@@ -74,16 +81,28 @@ export async function resolveWorkspaceBrandVariables(
 
     if (!workspace) return {};
 
-    const queueConfig = (workspace.queueConfig as any) || {};
+    const queueConfig = workspace.queueConfig || {};
     const company = workspace.company || {};
     const owner = company.owner || {};
 
     const companyName = company.name || workspace.name || "Company";
-    const companyWebsite = queueConfig.website || queueConfig.companyWebsite || "https://example.com";
+    const companyWebsite =
+      queueConfig.website ||
+      queueConfig.companyWebsite ||
+      "https://example.com";
     const industry = queueConfig.industry || "Industry";
-    const brandTopicList = queueConfig.brandTopicList || queueConfig.topics || "Industry News & Insights";
-    const businessContentFocusArea = queueConfig.businessContentFocusArea || queueConfig.focusArea || "Strategic Insights";
-    const businessAudience = queueConfig.targetAudience || queueConfig.businessAudience || "Business Audience";
+    const brandTopicList =
+      queueConfig.brandTopicList ||
+      queueConfig.topics ||
+      "Industry News & Insights";
+    const businessContentFocusArea =
+      queueConfig.businessContentFocusArea ||
+      queueConfig.focusArea ||
+      "Strategic Insights";
+    const businessAudience =
+      queueConfig.targetAudience ||
+      queueConfig.businessAudience ||
+      "Business Audience";
     let brandVoice =
       overrideTone ||
       queueConfig.brandVoice ||
@@ -162,7 +181,6 @@ export async function resolveWorkspaceBrandVariables(
   }
 }
 
-
 export async function checkPerspectiveToxicity(
   content: string,
   apiKey: string | null,
@@ -220,9 +238,11 @@ function tryParseBlogJson(
   return null;
 }
 
-function tryParsePolishedJson(
-  content: string,
-): { blogPostContent: string; socialPlainText: string; hashtags?: string[] } | null {
+function tryParsePolishedJson(content: string): {
+  blogPostContent: string;
+  socialPlainText: string;
+  hashtags?: string[];
+} | null {
   try {
     const cleaned = stripMarkdownFences(content.trim());
     const parsed = JSON.parse(cleaned);

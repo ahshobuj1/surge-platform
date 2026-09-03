@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { getTierConfig } from "../../companies/billing/tier-limits.config";
 
 export async function provisionVerifiedUserAccount(
   tx: Prisma.TransactionClient,
@@ -52,6 +53,19 @@ export async function provisionVerifiedUserAccount(
       workspaceId: workspaceRecord.id,
       userId: updatedUser.id,
       role: "owner",
+    },
+  });
+
+  const starterConfig = getTierConfig("starter");
+  await tx.subscription.upsert({
+    where: { userId: updatedUser.id },
+    update: {},
+    create: {
+      userId: updatedUser.id,
+      tier: "starter",
+      monthlyPostLimit: starterConfig.monthlyPosts,
+      feedLimit: starterConfig.maxRssSources,
+      status: "ACTIVE",
     },
   });
 

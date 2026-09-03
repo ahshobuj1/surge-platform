@@ -1,4 +1,8 @@
-import { Injectable, Logger, InternalServerErrorException } from "@nestjs/common";
+import {
+  Injectable,
+  Logger,
+  InternalServerErrorException,
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
 @Injectable()
@@ -15,7 +19,9 @@ export class GeminiImageProvider {
     const apiKey = this.config.get<string>("GEMINI_API_KEY");
     if (!apiKey) {
       this.logger.warn("GEMINI_API_KEY is not configured.");
-      throw new InternalServerErrorException("GEMINI_API_KEY is not configured");
+      throw new InternalServerErrorException(
+        "GEMINI_API_KEY is not configured",
+      );
     }
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:generateImages?key=${apiKey}`;
@@ -46,7 +52,9 @@ export class GeminiImageProvider {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Gemini Imagen API error (Status ${response.status}): ${errorText}`);
+        throw new Error(
+          `Gemini Imagen API error (Status ${response.status}): ${errorText}`,
+        );
       }
 
       const result = (await response.json()) as {
@@ -60,8 +68,12 @@ export class GeminiImageProvider {
 
       return Buffer.from(base64Image, "base64");
     } catch (err: any) {
-      this.logger.error(`Failed to generate image via Gemini Imagen: ${err.message}`);
-      throw new InternalServerErrorException(`Gemini image generation failed: ${err.message}`);
+      this.logger.error(
+        `Failed to generate image via Gemini Imagen: ${err.message}`,
+      );
+      throw new InternalServerErrorException(
+        `Gemini image generation failed: ${err.message}`,
+      );
     }
   }
 }

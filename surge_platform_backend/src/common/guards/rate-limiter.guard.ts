@@ -6,7 +6,10 @@ import {
   Injectable,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import { THROTTLE_KEY, ThrottleOptions } from "../decorators/throttle.decorator";
+import {
+  THROTTLE_KEY,
+  ThrottleOptions,
+} from "../decorators/throttle.decorator";
 
 interface RateRecord {
   count: number;

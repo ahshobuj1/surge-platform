@@ -7,12 +7,10 @@ describe("RawPostsService", () => {
   beforeEach(() => {
     prisma = {
       workspace: {
-        findUnique: jest
-          .fn()
-          .mockResolvedValue({
-            id: "workspace-1",
-            company: { ownerId: "user-1" },
-          }),
+        findUnique: jest.fn().mockResolvedValue({
+          id: "workspace-1",
+          company: { ownerId: "user-1" },
+        }),
       },
       workspaceMember: {
         findFirst: jest.fn().mockResolvedValue(null),

@@ -24,7 +24,11 @@ export async function createDraft(
   user?: AuthenticatedUser,
 ) {
   const input = dto as any;
-  const workspace = await assertWorkspaceReadable(prisma, input.workspaceId, user);
+  const workspace = await assertWorkspaceReadable(
+    prisma,
+    input.workspaceId,
+    user,
+  );
 
   const draft = await prisma.generatedDraft.create({
     data: {
@@ -41,7 +45,7 @@ export async function createDraft(
       editorState: buildEditorState({
         title: input.title,
         hashtags: input.hashtags,
-      }) as Prisma.InputJsonValue,
+      }),
     },
   });
 
@@ -77,7 +81,11 @@ export async function updateDraft(
 ) {
   const input = dto as any;
   const draft = await findAccessibleDraft(prisma, id, user);
-  assertCanManageDraft(draft.workspace.company.ownerId, user, draft.workspace.id);
+  assertCanManageDraft(
+    draft.workspace.company.ownerId,
+    user,
+    draft.workspace.id,
+  );
 
   const currentEditorState = parseEditorState(draft.editorState);
   const nextEditorState = mergeEditorState(currentEditorState, input);
@@ -110,9 +118,10 @@ export async function updateDraft(
       companySocialPost: input.companySocialPost ?? draft.companySocialPost,
       personalSocialPost: input.personalSocialPost ?? draft.personalSocialPost,
       imageConcept: input.imageConcept ?? draft.imageConcept,
-      negativeConstraints: input.negativeConstraints ?? draft.negativeConstraints,
+      negativeConstraints:
+        input.negativeConstraints ?? draft.negativeConstraints,
       imageCaption: input.imageCaption ?? draft.imageCaption,
-      editorState: nextEditorState as Prisma.InputJsonValue,
+      editorState: nextEditorState,
       status: nextStatus,
     },
   });
@@ -136,7 +145,11 @@ export async function removeDraft(
   user: AuthenticatedUser,
 ) {
   const draft = await findAccessibleDraft(prisma, id, user);
-  assertCanManageDraft(draft.workspace.company.ownerId, user, draft.workspace.id);
+  assertCanManageDraft(
+    draft.workspace.company.ownerId,
+    user,
+    draft.workspace.id,
+  );
 
   const updated = await prisma.generatedDraft.update({
     where: { id },

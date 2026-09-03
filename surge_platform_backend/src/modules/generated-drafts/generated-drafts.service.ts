@@ -86,13 +86,7 @@ export class GeneratedDraftsService {
     user: AuthenticatedUser,
     dto: ScheduleGeneratedDraftDto,
   ): Promise<any> {
-    return scheduleDraftAction(
-      this.prisma,
-      this.dispatchQueue,
-      id,
-      user,
-      dto,
-    );
+    return scheduleDraftAction(this.prisma, this.dispatchQueue, id, user, dto);
   }
 
   async applyAutoPostPolicy(draftId: string): Promise<any> {

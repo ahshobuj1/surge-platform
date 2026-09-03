@@ -60,11 +60,17 @@ export class RssProcessor extends WorkerHost {
       this.logger.warn(
         `Workspace ${workspaceId} does not exist in database. Deactivating orphan RSS feed ${feedId}.`,
       );
-      await this.prisma.rssFeed.update({
-        where: { id: feedId },
-        data: { status: "inactive" },
-      }).catch(() => null);
-      return { inserted: 0, skipped: 0, error: `Workspace ${workspaceId} not found` };
+      await this.prisma.rssFeed
+        .update({
+          where: { id: feedId },
+          data: { status: "inactive" },
+        })
+        .catch(() => null);
+      return {
+        inserted: 0,
+        skipped: 0,
+        error: `Workspace ${workspaceId} not found`,
+      };
     }
 
     try {
@@ -91,28 +97,30 @@ export class RssProcessor extends WorkerHost {
         if (response.ok) {
           const xml = await response.text();
           const parsed = await this.parser.parseString(xml);
-          items = (parsed.items ?? []) as ParsedFeedItem[];
+          items = parsed.items ?? [];
         } else {
           this.logger.warn(
             `Direct fetch returned HTTP ${response.status} for ${feedUrl}. Retrying with rss-parser.parseURL...`,
           );
           const parsed = await this.parser.parseURL(feedUrl);
-          items = (parsed.items ?? []) as ParsedFeedItem[];
+          items = parsed.items ?? [];
         }
       } catch (fetchErr: any) {
         this.logger.warn(
           `Direct fetch failed for ${feedUrl} (${fetchErr.message}). Retrying with rss-parser.parseURL...`,
         );
         const parsed = await this.parser.parseURL(feedUrl);
-        items = (parsed.items ?? []) as ParsedFeedItem[];
+        items = parsed.items ?? [];
       }
 
       let inserted = 0;
       let skipped = 0;
 
       for (const item of items) {
-        const rawLink = typeof item.link === "string" ? item.link : (item.link as any)?.$;
-        const rawGuid = typeof item.guid === "string" ? item.guid : (item.guid as any)?.$;
+        const rawLink =
+          typeof item.link === "string" ? item.link : item.link?.$;
+        const rawGuid =
+          typeof item.guid === "string" ? item.guid : item.guid?.$;
         const articleUrl = (rawLink || rawGuid || "").trim();
 
         if (!articleUrl) {
@@ -131,12 +139,18 @@ export class RssProcessor extends WorkerHost {
           continue;
         }
 
-        const rawBody = [item.content, item.contentSnippet].filter(Boolean).join("\n\n");
+        const rawBody = [item.content, item.contentSnippet]
+          .filter(Boolean)
+          .join("\n\n");
         const sanitizedContent = extractAndSanitizeArticleContent(rawBody);
 
         const publishedAtValue = item.isoDate || item.pubDate;
-        const parsedPublishedAt = publishedAtValue ? new Date(publishedAtValue) : new Date();
-        const publishedAt = Number.isNaN(parsedPublishedAt.getTime()) ? new Date() : parsedPublishedAt;
+        const parsedPublishedAt = publishedAtValue
+          ? new Date(publishedAtValue)
+          : new Date();
+        const publishedAt = Number.isNaN(parsedPublishedAt.getTime())
+          ? new Date()
+          : parsedPublishedAt;
 
         await this.prisma.rawPostsBuffer.create({
           data: {

@@ -95,8 +95,9 @@ describe("AI Creative Engine integration with mocked AI providers", () => {
 
     const company = await prisma.company.create({
       data: {
+        ownerId: user.id,
         name: `Mock AI E2E Corp ${suffix}`,
-        domain: `surge-test-${suffix}.com`,
+        status: "active",
       },
     });
 

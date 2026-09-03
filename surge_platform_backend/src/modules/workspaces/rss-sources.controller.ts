@@ -11,6 +11,7 @@ import {
 } from "@nestjs/common";
 import { RssSourcesService } from "./rss-sources.service";
 import { CreateRssSourceDto } from "./dto/create-rss-source.dto";
+import { ValidateRssSourceDto } from "./dto/validate-rss-source.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
 import { Roles } from "../auth/decorators/roles.decorator";
@@ -20,6 +21,14 @@ import { Roles } from "../auth/decorators/roles.decorator";
 @Controller("workspaces/:workspaceId/rss-sources")
 export class RssSourcesController {
   constructor(private readonly rssService: RssSourcesService) {}
+
+  @Post("validate")
+  validate(
+    @Param("workspaceId") _workspaceId: string,
+    @Body() dto: ValidateRssSourceDto,
+  ) {
+    return this.rssService.validate(dto.url);
+  }
 
   @Post()
   create(

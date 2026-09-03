@@ -23,7 +23,8 @@ export class ImageGenerationProcessor {
     const draft = await this.prisma.generatedDraft.findUnique({
       where: { id: draftId },
     });
-    if (!draft || !draft.imageConcept) throw new Error(`Draft ${draftId} or imageConcept not found`);
+    if (!draft || !draft.imageConcept)
+      throw new Error(`Draft ${draftId} or imageConcept not found`);
 
     let imageBuffer: Buffer;
     let provider = "gemini";
@@ -68,7 +69,9 @@ export class ImageGenerationProcessor {
       tone,
     });
 
-    this.logger.log(`Completed Image Generation for Draft ${draftId}. Image uploaded to ${presignedUrl}. Enqueued company-social.`);
+    this.logger.log(
+      `Completed Image Generation for Draft ${draftId}. Image uploaded to ${presignedUrl}. Enqueued company-social.`,
+    );
 
     return { draftId, imageUrl: presignedUrl };
   }

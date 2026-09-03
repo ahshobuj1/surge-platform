@@ -47,8 +47,7 @@ export async function processChannelDispatch(
       where: { id: publishLog.id },
       data: {
         status: "sent",
-        livePostUrl:
-          dispatchResult.url ?? `https://example.local/${draft.id}`,
+        livePostUrl: dispatchResult.url ?? `https://example.local/${draft.id}`,
       },
     });
     await prisma.generatedDraft.update({

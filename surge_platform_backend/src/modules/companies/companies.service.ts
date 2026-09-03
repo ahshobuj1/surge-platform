@@ -43,9 +43,25 @@ export class CompaniesService {
   async findMine(user: AuthenticatedUser) {
     const company = await this.prisma.company.findFirst({
       where: { ownerId: user.userId },
+      include: {
+        owner: {
+          select: {
+            subscription: {
+              select: { tier: true, status: true },
+            },
+          },
+        },
+      },
       orderBy: { createdAt: "desc" },
     });
-    return company || null;
+
+    if (!company) return null;
+
+    const { owner, ...rest } = company;
+    return {
+      ...rest,
+      subscriptionTier: (owner?.subscription?.tier || "starter").toLowerCase(),
+    };
   }
 
   async findOne(id: string, user: AuthenticatedUser) {

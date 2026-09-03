@@ -32,12 +32,16 @@ export class QueuesService {
   async retryJob(jobId: string) {
     const job = await this.contentGenerationQueue.getJob(jobId);
     if (!job) {
-      throw new NotFoundException(`Job ${jobId} not found in content-generation-queue`);
+      throw new NotFoundException(
+        `Job ${jobId} not found in content-generation-queue`,
+      );
     }
 
     const state = await job.getState();
     if (state !== "failed") {
-      throw new Error(`Job ${jobId} is not in a failed state. Current state is: ${state}`);
+      throw new Error(
+        `Job ${jobId} is not in a failed state. Current state is: ${state}`,
+      );
     }
 
     await job.retry();

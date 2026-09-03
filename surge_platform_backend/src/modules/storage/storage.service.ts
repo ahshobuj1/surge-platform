@@ -37,8 +37,7 @@ export class StorageService {
       this.configService.get<string>("MINIO_SECRET_KEY") ??
       "rustfsadmin";
 
-    const region =
-      this.configService.get<string>("S3_REGION") ?? "us-east-1";
+    const region = this.configService.get<string>("S3_REGION") ?? "us-east-1";
 
     this.bucketName =
       this.configService.get<string>("RUSTFS_BUCKET") ??
@@ -137,7 +136,9 @@ export class StorageService {
       await this.ensureBucketExists();
       return { ok: true, bucketName: this.bucketName };
     } catch (error) {
-      throw new InternalServerErrorException("RustFS / S3 storage is not reachable");
+      throw new InternalServerErrorException(
+        "RustFS / S3 storage is not reachable",
+      );
     }
   }
 }

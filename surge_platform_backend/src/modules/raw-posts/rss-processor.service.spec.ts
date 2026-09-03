@@ -70,7 +70,11 @@ describe("RssProcessor", () => {
     // Mock global fetch
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
-      text: jest.fn().mockResolvedValue("<rss><channel><item><title>Test</title></item></channel></rss>"),
+      text: jest
+        .fn()
+        .mockResolvedValue(
+          "<rss><channel><item><title>Test</title></item></channel></rss>",
+        ),
     } as any);
 
     const jobMock: any = {

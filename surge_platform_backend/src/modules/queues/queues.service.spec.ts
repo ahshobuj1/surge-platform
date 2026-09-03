@@ -9,7 +9,13 @@ describe("QueuesService", () => {
 
   beforeEach(async () => {
     mockQueue = {
-      getJobCounts: jest.fn().mockResolvedValue({ active: 1, completed: 2, failed: 3, delayed: 0, waiting: 0 }),
+      getJobCounts: jest.fn().mockResolvedValue({
+        active: 1,
+        completed: 2,
+        failed: 3,
+        delayed: 0,
+        waiting: 0,
+      }),
       getFailed: jest.fn().mockResolvedValue([
         {
           id: "job-1",

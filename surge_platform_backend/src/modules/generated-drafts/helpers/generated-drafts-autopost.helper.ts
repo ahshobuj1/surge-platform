@@ -40,10 +40,7 @@ export async function applyAutoPostPolicyAction(
     return updated;
   }
 
-  const channels = await resolvePublishingChannels(
-    prisma,
-    draft.workspaceId,
-  );
+  const channels = await resolvePublishingChannels(prisma, draft.workspaceId);
   const result = await dispatchDraftToChannels(
     prisma,
     dispatcher,

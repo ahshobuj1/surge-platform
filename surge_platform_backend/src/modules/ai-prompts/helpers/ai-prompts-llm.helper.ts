@@ -148,14 +148,15 @@ async function invokeOpenAI(
     finalSystem.toLowerCase().includes("json") ||
     finalUser.toLowerCase().includes("json");
 
-  const completionOptions: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming = {
-    model,
-    temperature: 0.7,
-    messages: [
-      { role: "system", content: finalSystem },
-      { role: "user", content: finalUser },
-    ],
-  };
+  const completionOptions: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming =
+    {
+      model,
+      temperature: 0.7,
+      messages: [
+        { role: "system", content: finalSystem },
+        { role: "user", content: finalUser },
+      ],
+    };
 
   if (isJsonExpected) {
     completionOptions.response_format = { type: "json_object" };

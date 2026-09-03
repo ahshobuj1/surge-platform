@@ -37,9 +37,14 @@ jest.mock("openai", () => ({
 }));
 
 type PrismaMock = {
-  rawPostsBuffer: { findMany: jest.Mock };
-  generatedDraft: { create: jest.Mock; update: jest.Mock; findUnique: jest.Mock };
+  rawPostsBuffer: { findMany: jest.Mock; updateMany?: jest.Mock };
+  generatedDraft: {
+    create: jest.Mock;
+    update: jest.Mock;
+    findUnique: jest.Mock;
+  };
   toneProfile: { findFirst: jest.Mock };
+  articleGroup?: { create: jest.Mock };
 };
 
 type SleepCapableAiPromptsService = {
@@ -93,43 +98,55 @@ describe("AiPromptsService Batch Digest Integration", () => {
       id: "step-group-id",
       toneProfileId,
       title: "Grouping Prompt",
-      systemPrompt: "You are an Article Grouping Bot. Categorize, cluster, and find the editorial link.",
-      template: "Analyze these articles and group them. Output a JSON with keys: sharedTheme (max 10 words) and editorialAngle (2-3 sentences explaining perspective).",
+      systemPrompt:
+        "You are an Article Grouping Bot. Categorize, cluster, and find the editorial link.",
+      template:
+        "Analyze these articles and group them. Output a JSON with keys: sharedTheme (max 10 words) and editorialAngle (2-3 sentences explaining perspective).",
     },
     stepOneRawDraftPrompt: {
       id: "step1-id",
       toneProfileId,
       title: "Step 1 Prompt",
-      systemPrompt: "Create both WordPress HTML and concise social copy for a batch digest.",
-      template: "Use the following raw articles for context:\n{{articleContext}}\n\nRespond strictly in valid JSON format with keys: blogPostContent, imagePrompt.",
+      systemPrompt:
+        "Create both WordPress HTML and concise social copy for a batch digest.",
+      template:
+        "Use the following raw articles for context:\n{{articleContext}}\n\nRespond strictly in valid JSON format with keys: blogPostContent, imagePrompt.",
     },
     stepTwoPolishingPrompt: {
       id: "step2-id",
       toneProfileId,
       title: "Step 2 Prompt",
-      systemPrompt: "You are a professional content editor. Take the following raw blog post draft and polish it. Improve grammar, formatting, structure, and tone.",
-      template: "Tone: {{tone}}\nAudience: {{audience}}\n\nRaw draft content:\n{{blogPostContent}}\n\nRespond strictly in valid JSON format with keys: blogPostContent, socialPlainText, hashtags.",
+      systemPrompt:
+        "You are a professional content editor. Take the following raw blog post draft and polish it. Improve grammar, formatting, structure, and tone.",
+      template:
+        "Tone: {{tone}}\nAudience: {{audience}}\n\nRaw draft content:\n{{blogPostContent}}\n\nRespond strictly in valid JSON format with keys: blogPostContent, socialPlainText, hashtags.",
     },
     stepThreeImagePrompt: {
       id: "step3-id",
       toneProfileId,
       title: "Step 3 Prompt",
-      systemPrompt: "Analyze the polished blog post and generate a detailed image generation prompt suitable for DALL-E.",
-      template: "Polished Content:\n{{blogPostContent}}\n\nRespond strictly in valid JSON format with key: imagePrompt.",
+      systemPrompt:
+        "Analyze the polished blog post and generate a detailed image generation prompt suitable for DALL-E.",
+      template:
+        "Polished Content:\n{{blogPostContent}}\n\nRespond strictly in valid JSON format with key: imagePrompt.",
     },
     stepCompanySocialPrompt: {
       id: "step-company-id",
       toneProfileId,
       title: "Company Social Prompt",
-      systemPrompt: "You are a corporate PR representative. You write factual, concise social posts.",
-      template: "Create a 2-3 sentence institutional/company social media post based on the article content.",
+      systemPrompt:
+        "You are a corporate PR representative. You write factual, concise social posts.",
+      template:
+        "Create a 2-3 sentence institutional/company social media post based on the article content.",
     },
     stepPersonalSocialPrompt: {
       id: "step-personal-id",
       toneProfileId,
       title: "Personal Social Prompt",
-      systemPrompt: "You are a tech founder and leader. You write thoughtful, conversational thoughts on industry trends.",
-      template: "Create a 2-4 sentence first-person founder/leader social media share post based on the article content.",
+      systemPrompt:
+        "You are a tech founder and leader. You write thoughtful, conversational thoughts on industry trends.",
+      template:
+        "Create a 2-4 sentence first-person founder/leader social media share post based on the article content.",
     },
   };
 
@@ -143,8 +160,15 @@ describe("AiPromptsService Batch Digest Integration", () => {
     jest.clearAllMocks();
 
     prisma = {
-      rawPostsBuffer: { findMany: jest.fn(), updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
-      generatedDraft: { create: jest.fn(), update: jest.fn(), findUnique: jest.fn() },
+      rawPostsBuffer: {
+        findMany: jest.fn(),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      generatedDraft: {
+        create: jest.fn(),
+        update: jest.fn(),
+        findUnique: jest.fn(),
+      },
       toneProfile: { findFirst: jest.fn() },
       articleGroup: { create: jest.fn().mockResolvedValue({ id: "group-1" }) },
     };
@@ -196,11 +220,15 @@ describe("AiPromptsService Batch Digest Integration", () => {
                 },
                 include: { workspace: true },
               });
-              await mockQueue.add("step-two", {
-                draftId: draft.id,
-                workspaceId,
-                toneProfileId: toneProfile?.id || "tone-1",
-              }, expect.any(Object));
+              await mockQueue.add(
+                "step-two",
+                {
+                  draftId: draft.id,
+                  workspaceId,
+                  toneProfileId: toneProfile?.id || "tone-1",
+                },
+                expect.any(Object),
+              );
             },
           },
         },
@@ -226,11 +254,15 @@ describe("AiPromptsService Batch Digest Integration", () => {
                   status: "POLISHED",
                 },
               });
-              await mockQueue.add("step-three", {
-                draftId,
-                workspaceId,
-                toneProfileId,
-              }, expect.any(Object));
+              await mockQueue.add(
+                "step-three",
+                {
+                  draftId,
+                  workspaceId,
+                  toneProfileId,
+                },
+                expect.any(Object),
+              );
             },
           },
         },
@@ -288,7 +320,9 @@ describe("AiPromptsService Batch Digest Integration", () => {
         {
           provide: GeminiImageProvider,
           useValue: {
-            generateImage: jest.fn().mockResolvedValue(Buffer.from("dummy-image-bytes")),
+            generateImage: jest
+              .fn()
+              .mockResolvedValue(Buffer.from("dummy-image-bytes")),
           },
         },
         { provide: PrismaService, useValue: prisma },
@@ -311,7 +345,11 @@ describe("AiPromptsService Batch Digest Integration", () => {
           provide: GeneratedDraftsService,
           useValue: {
             applyAutoPostPolicy: jest.fn().mockImplementation(async (id) => {
-              return { id, status: "READY_FOR_REVIEW", blogPostContent: "Polished blog post content" };
+              return {
+                id,
+                status: "READY_FOR_REVIEW",
+                blogPostContent: "Polished blog post content",
+              };
             }),
           },
         },
@@ -357,7 +395,11 @@ describe("AiPromptsService Batch Digest Integration", () => {
       } else if (name === "step-two") {
         await processor.process({ name: "step-two", data, id: "job-2" } as any);
       } else if (name === "step-three") {
-        await processor.process({ name: "step-three", data, id: "job-3" } as any);
+        await processor.process({
+          name: "step-three",
+          data,
+          id: "job-3",
+        } as any);
       }
       return { id: "job-id" };
     });
@@ -443,7 +485,11 @@ describe("AiPromptsService Batch Digest Integration", () => {
     });
 
     expect(result).toEqual({ message: "Generation process started" });
-    expect(mockQueue.add).toHaveBeenCalledWith("step-one", expect.any(Object), expect.any(Object));
+    expect(mockQueue.add).toHaveBeenCalledWith(
+      "step-one",
+      expect.any(Object),
+      expect.any(Object),
+    );
 
     expect(mockOpenAIChatCreate).toHaveBeenCalledTimes(3);
 

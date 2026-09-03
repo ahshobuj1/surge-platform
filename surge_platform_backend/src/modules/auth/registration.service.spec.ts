@@ -39,6 +39,9 @@ describe("RegistrationService", () => {
       workspaceMember: {
         create: jest.fn().mockResolvedValue({ id: "member-1" }),
       },
+      subscription: {
+        upsert: jest.fn().mockResolvedValue({ id: "sub-1" }),
+      },
     };
 
     prisma = {
@@ -71,15 +74,15 @@ describe("RegistrationService", () => {
     configService = { get: jest.fn() };
 
     service = new RegistrationService(
-      prisma as any,
-      jwtService as any,
-      mailtrapService as any,
-      configService as any,
+      prisma,
+      jwtService,
+      mailtrapService,
+      configService,
     );
   });
 
   it("creates a default company and workspace after email verification", async () => {
-    (bcrypt.compare as jest.Mock).mockResolvedValue(true as never);
+    (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
     prisma.user.findUnique.mockResolvedValueOnce({
       id: "user-1",

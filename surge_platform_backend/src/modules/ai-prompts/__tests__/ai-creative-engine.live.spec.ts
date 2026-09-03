@@ -28,9 +28,9 @@ interface GeneratedContent {
 
 const isLiveConfigured = Boolean(
   process.env.RUN_LIVE_TESTS === "true" &&
-    process.env.OPENAI_API_KEY &&
-    !process.env.OPENAI_API_KEY.includes("testdummy") &&
-    !process.env.OPENAI_API_KEY.includes("placeholder"),
+  process.env.OPENAI_API_KEY &&
+  !process.env.OPENAI_API_KEY.includes("testdummy") &&
+  !process.env.OPENAI_API_KEY.includes("placeholder"),
 );
 
 const describeLive = isLiveConfigured ? describe : describe.skip;
@@ -164,7 +164,8 @@ describeLive("AI Creative Engine live E2E integration", () => {
         toneProfileId: toneProfile.id,
         title: "Default Step 1 Prompt",
         systemPrompt: "You are a precise multi-platform content editor.",
-        template: "Create a blog draft based on the context:\n{{articleContext}}",
+        template:
+          "Create a blog draft based on the context:\n{{articleContext}}",
       },
     });
 
@@ -272,7 +273,9 @@ describeLive("AI Creative Engine live E2E integration", () => {
       )
       .join("\n\n");
 
-    const systemPrompt = toneProfile.stepOneRawDraftPrompt?.systemPrompt ?? "You are a precise editor.";
+    const systemPrompt =
+      toneProfile.stepOneRawDraftPrompt?.systemPrompt ??
+      "You are a precise editor.";
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",

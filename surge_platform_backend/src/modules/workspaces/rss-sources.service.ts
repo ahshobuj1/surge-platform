@@ -7,6 +7,7 @@ import {
   BadRequestException,
 } from "../../common/exceptions/http.exceptions";
 import { checkRssSubscriptionLimit } from "./helpers/rss-sources-limit.helper";
+import { validateRssFeed } from "./helpers/rss-validator.util";
 
 interface UpdateRssSourceDto {
   feedUrl?: string;
@@ -20,6 +21,10 @@ export class RssSourcesService {
     private scheduler: RssSchedulerService,
   ) {}
 
+  async validate(url: string) {
+    return validateRssFeed(url);
+  }
+
   private async getWorkspaceAndCompanyOwner(workspaceId: string) {
     const workspace = await this.prisma.workspace.findUnique({
       where: { id: workspaceId },
@@ -32,8 +37,7 @@ export class RssSourcesService {
   }
 
   async create(workspaceId: string, dto: CreateRssSourceDto) {
-    const { company } =
-      await this.getWorkspaceAndCompanyOwner(workspaceId);
+    const { company } = await this.getWorkspaceAndCompanyOwner(workspaceId);
 
     await checkRssSubscriptionLimit(this.prisma, company.ownerId, workspaceId);
 
@@ -42,10 +46,12 @@ export class RssSourcesService {
       throw new BadRequestException("Please enter a valid RSS feed URL.");
     }
 
+    const validated = await validateRssFeed(targetUrl);
+
     const created = await this.prisma.rssFeed.create({
       data: {
         workspaceId,
-        feedUrl: targetUrl,
+        feedUrl: validated.feedUrl,
         status: "active",
       },
     });
@@ -56,7 +62,11 @@ export class RssSourcesService {
       created.feedUrl,
     );
 
-    return created;
+    return {
+      ...created,
+      title: validated.title,
+      itemCount: validated.itemCount,
+    };
   }
 
   async list(workspaceId: string) {
@@ -129,6 +139,10 @@ export class RssSourcesService {
   async triggerScrape(workspaceId: string, sourceId: string) {
     const feed = await this.getOne(workspaceId, sourceId);
     await this.scheduler.scheduleFeedJob(workspaceId, feed.id, feed.feedUrl);
-    return { success: true, message: "Scrape job triggered successfully", feedId: sourceId };
+    return {
+      success: true,
+      message: "Scrape job triggered successfully",
+      feedId: sourceId,
+    };
   }
 }

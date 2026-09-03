@@ -14,7 +14,9 @@ export class RssExtractionProcessor {
 
   async process(job: Job<any>) {
     const { title, url, source, workspaceId, feedId } = job.data;
-    this.logger.log(`Processing RSS extraction for item: ${title} from ${source}`);
+    this.logger.log(
+      `Processing RSS extraction for item: ${title} from ${source}`,
+    );
 
     const urlHash = Buffer.from(url).toString("base64").substring(0, 100);
 

@@ -43,7 +43,8 @@ describe("8-Step Sequential Pipeline Components", () => {
 
       const provider = new GeminiImageProvider(mockConfig);
 
-      const mockBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+      const mockBase64 =
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
       const mockJson = {
         generatedImages: [{ image: { imageBytes: mockBase64 } }],
       };

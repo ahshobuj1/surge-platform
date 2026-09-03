@@ -68,8 +68,7 @@ export async function dispatchDraftToChannels(
 
       failures.push({
         channel: channel.platform,
-        error:
-          dispatchResult.error ?? `Failed to dispatch ${channel.platform}`,
+        error: dispatchResult.error ?? `Failed to dispatch ${channel.platform}`,
       });
     }
   }
@@ -92,7 +91,10 @@ export function buildDispatchPayload(
     title,
     content,
     images: draft.imageUrl ? [draft.imageUrl] : undefined,
-    credentials: parseCredentials(channel.encryptedCredentials, encryptionService),
+    credentials: parseCredentials(
+      channel.encryptedCredentials,
+      encryptionService,
+    ),
     metadata: {
       draftId: draft.id,
       workspaceId: draft.workspaceId,
@@ -134,14 +136,9 @@ export function resolveChannelContent(
     return draft.socialPlainText.trim();
   }
 
-  return stripHtml(
-    draft.blogPostContent ?? editorState.excerpt ?? "",
-  );
+  return stripHtml(draft.blogPostContent ?? editorState.excerpt ?? "");
 }
 
-export async function recordAuditEvent(
-  prisma: PrismaService,
-  params: any,
-) {
+export async function recordAuditEvent(prisma: PrismaService, params: any) {
   // Audit log helper hook
 }

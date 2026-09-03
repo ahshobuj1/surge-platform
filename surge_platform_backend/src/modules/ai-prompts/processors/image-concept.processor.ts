@@ -1,7 +1,10 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../../../common/context/prisma.service";
 import { generateLlmCompletion } from "../helpers/ai-prompts-llm.helper";
-import { interpolateTemplate, resolveWorkspaceBrandVariables } from "../helpers/ai-prompts-digest.helper";
+import {
+  interpolateTemplate,
+  resolveWorkspaceBrandVariables,
+} from "../helpers/ai-prompts-digest.helper";
 import { extractJsonString } from "../helpers/ai-prompts-parser.util";
 import OpenAI from "openai";
 import { ConfigService } from "@nestjs/config";
@@ -16,7 +19,7 @@ export class ImageConceptProcessor {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     @InjectQueue("content-generation-queue") private readonly queue: Queue,
-  ) { }
+  ) {}
 
   async process(job: Job<any>) {
     const { draftId, model = "gpt-4o", tone = "professional" } = job.data;
@@ -25,7 +28,8 @@ export class ImageConceptProcessor {
     const draft = await this.prisma.generatedDraft.findUnique({
       where: { id: draftId },
     });
-    if (!draft || !draft.polishedContent) throw new Error(`Draft ${draftId} or polishedContent not found`);
+    if (!draft || !draft.polishedContent)
+      throw new Error(`Draft ${draftId} or polishedContent not found`);
 
     const toneProfile = draft.toneProfileId
       ? await this.prisma.toneProfile.findUnique({
@@ -37,9 +41,13 @@ export class ImageConceptProcessor {
           include: { stepThreeImagePrompt: true },
         });
 
-    const brandVariables = await resolveWorkspaceBrandVariables(this.prisma, draft.workspaceId);
+    const brandVariables = await resolveWorkspaceBrandVariables(
+      this.prisma,
+      draft.workspaceId,
+    );
 
-    let systemPrompt = "You are an art director and humorist. You design classic New Yorker style monochrome cartoons.";
+    let systemPrompt =
+      "You are an art director and humorist. You design classic New Yorker style monochrome cartoons.";
     let userPrompt = `Read the following article and generate a New Yorker style cartoon concept representing the theme.
 Provide a JSON response with keys:
 1. imagePrompt (A clear description of the drawing context/prompt).
@@ -53,8 +61,14 @@ Provide a JSON response with keys:
         blogPostContent: draft.polishedContent,
         blogTitle: editorState.title || (draft as any).topicTitle || "",
       };
-      systemPrompt = interpolateTemplate(toneProfile.stepThreeImagePrompt.systemPrompt, mergedVariables);
-      userPrompt = interpolateTemplate(toneProfile.stepThreeImagePrompt.template, mergedVariables);
+      systemPrompt = interpolateTemplate(
+        toneProfile.stepThreeImagePrompt.systemPrompt,
+        mergedVariables,
+      );
+      userPrompt = interpolateTemplate(
+        toneProfile.stepThreeImagePrompt.template,
+        mergedVariables,
+      );
     }
 
     const openAiKey = this.config.get<string>("OPENAI_API_KEY");
@@ -70,7 +84,11 @@ Provide a JSON response with keys:
       userPrompt,
     });
 
-    let parsed: { imagePrompt: string; negativeConstraints: string; caption: string };
+    let parsed: {
+      imagePrompt: string;
+      negativeConstraints: string;
+      caption: string;
+    };
     try {
       const cleaned = extractJsonString(llmOutput);
       parsed = JSON.parse(cleaned);
@@ -78,7 +96,9 @@ Provide a JSON response with keys:
         throw new Error("Missing imagePrompt in LLM output");
       }
     } catch (parseErr: any) {
-      this.logger.warn(`Image concept JSON parse warning: ${parseErr.message}. Using fallback concept.`);
+      this.logger.warn(
+        `Image concept JSON parse warning: ${parseErr.message}. Using fallback concept.`,
+      );
       parsed = {
         imagePrompt: llmOutput.substring(0, 300),
         negativeConstraints: "photo, color, realistic",
@@ -102,7 +122,9 @@ Provide a JSON response with keys:
       tone,
     });
 
-    this.logger.log(`Completed Image Concept generation for Draft ${draftId}. Enqueued image-generation.`);
+    this.logger.log(
+      `Completed Image Concept generation for Draft ${draftId}. Enqueued image-generation.`,
+    );
 
     return { draftId, concept: parsed };
   }

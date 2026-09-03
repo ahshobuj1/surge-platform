@@ -24,10 +24,7 @@ export class AuthService {
     return this.registrationService.verifyEmail(token);
   }
 
-  async login(
-    identifier: string | undefined,
-    password: string,
-  ) {
+  async login(identifier: string | undefined, password: string) {
     return this.loginService.login(identifier, password);
   }
 

@@ -42,9 +42,7 @@ export async function refreshOAuthTokenIfNeeded(
             client_id:
               credentials.clientId || process.env.FACEBOOK_APP_ID || "",
             client_secret:
-              credentials.clientSecret ||
-              process.env.FACEBOOK_APP_SECRET ||
-              "",
+              credentials.clientSecret || process.env.FACEBOOK_APP_SECRET || "",
             fb_exchange_token: credentials.accessToken || refreshToken,
           },
         },

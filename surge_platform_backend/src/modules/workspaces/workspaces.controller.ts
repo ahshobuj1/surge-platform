@@ -19,7 +19,9 @@ import { WorkspacesService } from "./workspaces.service";
 import { QueueConfigDto } from "./dto/queue-config.dto";
 import { AutoPostToggleDto } from "./dto/auto-post-toggle.dto";
 import { CreateWorkspaceDto } from "./dto/create-workspace.dto";
+import { ValidateRssSourceDto } from "./dto/validate-rss-source.dto";
 import { RssSchedulerService } from "./rss-scheduler.service";
+import { RssSourcesService } from "./rss-sources.service";
 import { AutopilotSchedulerService } from "../autopilot/autopilot-scheduler.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
@@ -36,9 +38,20 @@ interface AuthenticatedUser {
 export class WorkspacesController {
   constructor(
     private readonly workspacesService: WorkspacesService,
+    private readonly rssSourcesService: RssSourcesService,
     private readonly scheduler: RssSchedulerService,
     private readonly autopilotScheduler: AutopilotSchedulerService,
   ) {}
+
+  @Post("rss-sources/validate")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin", "customer")
+  @ApiOperation({ summary: "Validate an RSS/Atom feed URL" })
+  @ApiBody({ type: ValidateRssSourceDto })
+  @ApiResponse({ status: 200, description: "RSS feed validated successfully" })
+  validateRssSource(@Body() dto: ValidateRssSourceDto) {
+    return this.rssSourcesService.validate(dto.url);
+  }
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)

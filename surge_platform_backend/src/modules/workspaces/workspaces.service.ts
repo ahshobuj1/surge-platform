@@ -5,10 +5,7 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../../common/context/prisma.service";
 import { CreateWorkspaceDto } from "./dto/create-workspace.dto";
-import {
-  mergeQueueConfig,
-  QueueConfig,
-} from "./helpers/workspace-config.util";
+import { mergeQueueConfig, QueueConfig } from "./helpers/workspace-config.util";
 import {
   assertCompanyOwnerOrAdmin,
   assertWorkspaceAccess,

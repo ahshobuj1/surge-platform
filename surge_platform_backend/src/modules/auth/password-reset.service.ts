@@ -94,7 +94,6 @@ export class PasswordResetService {
 
     const verification = await (async () => {
       for (const cand of candidates) {
-        // eslint-disable-next-line no-await-in-loop
         const match = await bcrypt.compare(token, (cand as any).tokenHash);
         if (match) return cand;
       }

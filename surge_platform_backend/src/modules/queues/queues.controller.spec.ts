@@ -9,11 +9,21 @@ describe("QueuesController", () => {
   beforeEach(async () => {
     service = {
       getStats: jest.fn().mockResolvedValue({
-        "content-generation-queue": { active: 0, completed: 5, failed: 0, delayed: 0, waiting: 0 },
+        "content-generation-queue": {
+          active: 0,
+          completed: 5,
+          failed: 0,
+          delayed: 0,
+          waiting: 0,
+        },
       }),
       getFailedJobs: jest.fn().mockResolvedValue([]),
-      retryJob: jest.fn().mockResolvedValue({ message: "Job retried successfully" }),
-      cleanHistory: jest.fn().mockResolvedValue({ message: "Queue history cleaned successfully" }),
+      retryJob: jest
+        .fn()
+        .mockResolvedValue({ message: "Job retried successfully" }),
+      cleanHistory: jest
+        .fn()
+        .mockResolvedValue({ message: "Queue history cleaned successfully" }),
     };
 
     const module: TestingModule = await Test.createTestingModule({

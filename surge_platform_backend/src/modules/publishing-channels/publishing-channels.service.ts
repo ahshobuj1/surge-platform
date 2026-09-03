@@ -3,7 +3,11 @@ import { PrismaService } from "../../common/context/prisma.service";
 import { EncryptionService } from "../../common/security/encryption.service";
 import { CreatePublishingChannelDto } from "./dto/create-publishing-channel.dto";
 import { UpdatePublishingChannelDto } from "./dto/update-publishing-channel.dto";
-import { assertWorkspaceAccess, AuthenticatedUser } from "../workspaces/helpers/workspace-auth.util";
+import {
+  assertWorkspaceAccess,
+  AuthenticatedUser,
+} from "../workspaces/helpers/workspace-auth.util";
+import { assertTierLimit } from "../companies/billing/tier-limits.config";
 
 @Injectable()
 export class PublishingChannelsService {
@@ -15,6 +19,23 @@ export class PublishingChannelsService {
   async create(dto: CreatePublishingChannelDto, user: AuthenticatedUser) {
     if (dto.workspaceId) {
       await assertWorkspaceAccess(this.prisma, dto.workspaceId, user, "update");
+
+      const workspace = await this.prisma.workspace.findUnique({
+        where: { id: dto.workspaceId },
+        select: { company: { select: { ownerId: true } } },
+      });
+
+      if (workspace?.company?.ownerId) {
+        const subscription = await this.prisma.subscription.findUnique({
+          where: { userId: workspace.company.ownerId },
+        });
+
+        const activeChannels = await this.prisma.publishingChannel.count({
+          where: { workspaceId: dto.workspaceId, isActive: true },
+        });
+
+        assertTierLimit("channel", activeChannels, subscription?.tier);
+      }
     }
 
     const encryptedCredentials = this.encryptionService.encrypt(
@@ -79,13 +100,22 @@ export class PublishingChannelsService {
     }
 
     if (channel.workspaceId) {
-      await assertWorkspaceAccess(this.prisma, channel.workspaceId, user, "view");
+      await assertWorkspaceAccess(
+        this.prisma,
+        channel.workspaceId,
+        user,
+        "view",
+      );
     }
 
     return this.sanitizeChannel(channel);
   }
 
-  async update(id: string, dto: UpdatePublishingChannelDto, user: AuthenticatedUser) {
+  async update(
+    id: string,
+    dto: UpdatePublishingChannelDto,
+    user: AuthenticatedUser,
+  ) {
     const existing = await this.prisma.publishingChannel.findUnique({
       where: { id },
     });
@@ -95,7 +125,12 @@ export class PublishingChannelsService {
     }
 
     if (existing.workspaceId) {
-      await assertWorkspaceAccess(this.prisma, existing.workspaceId, user, "update");
+      await assertWorkspaceAccess(
+        this.prisma,
+        existing.workspaceId,
+        user,
+        "update",
+      );
     }
 
     const data: Record<string, any> = {};
@@ -125,7 +160,12 @@ export class PublishingChannelsService {
     }
 
     if (channel.workspaceId) {
-      await assertWorkspaceAccess(this.prisma, channel.workspaceId, user, "delete");
+      await assertWorkspaceAccess(
+        this.prisma,
+        channel.workspaceId,
+        user,
+        "delete",
+      );
     }
 
     return this.prisma.publishingChannel.delete({ where: { id } });
