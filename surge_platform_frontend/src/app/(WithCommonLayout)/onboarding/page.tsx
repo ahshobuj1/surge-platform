@@ -10,6 +10,7 @@ import { StepConnectPlatforms } from "@/app/component/onboarding/StepConnectCMS"
 import { StepSchedule, ScheduleData } from "@/app/component/onboarding/StepSchedule";
 import { StepPaywall, PlanTier, BillingInterval, PLAN_TIERS, PlanId } from "@/app/component/onboarding/StepPaywall";
 import { StepCheckout } from "@/app/component/onboarding/StepCheckout";
+import { StepCompleted } from "@/app/component/onboarding/StepCompleted";
 import { useWorkspace } from "@/lib/context/WorkspaceContext";
 import { api } from "@/lib/api";
 import type { ValidatedFeedInfo } from "@/app/component/onboarding/StepAddFeeds";
@@ -26,19 +27,22 @@ function buildSteps(currentStep: number): Step[] {
   });
 }
 
-function parseStep(param: string | null): number {
+function parseStep(param: string | null, sessionId: string | null): number {
+  if (sessionId) return 7;
   if (!param) return 1;
   const lower = param.toLowerCase();
   if (lower === "paywall" || lower === "5") return 5;
   if (lower === "checkout" || lower === "6") return 6;
+  if (lower === "completed" || lower === "7") return 7;
   const num = parseInt(lower, 10);
-  if (num >= 1 && num <= 6) return num;
+  if (num >= 1 && num <= 7) return num;
   return 1;
 }
 
 function stepToParam(stepNum: number): string {
   if (stepNum === 5) return "paywall";
   if (stepNum === 6) return "checkout";
+  if (stepNum === 7) return "completed";
   return String(stepNum);
 }
 
@@ -50,11 +54,14 @@ function OnboardingContent({ onComplete }: OnboardingProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Current step parsed from query param ?step=1|2|3|4|paywall|checkout
   const stepParam = searchParams.get("step");
-  const currentStep = useMemo(() => parseStep(stepParam), [stepParam]);
+  const sessionId = searchParams.get("session_id");
+  const isCancelled = searchParams.get("cancelled") === "true";
+  const currentStep = useMemo(
+    () => parseStep(stepParam, sessionId),
+    [stepParam, sessionId],
+  );
 
-  // Plan override parsed from query param ?plan=starter|pro|enterprise
   const planParam = searchParams.get("plan");
   const activePlanTier: PlanTier = useMemo(() => {
     if (planParam === "starter" || planParam === "pro" || planParam === "enterprise") {
@@ -64,10 +71,10 @@ function OnboardingContent({ onComplete }: OnboardingProps) {
     return PLAN_TIERS.find((p) => p.id === "pro") || PLAN_TIERS[1];
   }, [planParam]);
 
-  // Helper to navigate steps using URL parameters with browser history support
   const navigateToStep = (newStep: number, planOverride?: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("step", stepToParam(newStep));
+    params.delete("cancelled");
     if (planOverride) {
       params.set("plan", planOverride);
     }
@@ -75,7 +82,7 @@ function OnboardingContent({ onComplete }: OnboardingProps) {
   };
 
   const { activeWorkspace, workspaces } = useWorkspace();
-  const targetWorkspaceId = activeWorkspace?.id || workspaces[0]?.id;
+  const targetWorkspaceId = activeWorkspace?.id || (workspaces.length > 0 ? workspaces[0].id : undefined);
 
   // Onboarding aggregated state
   const [feedUrl, setFeedUrl] = useState<string>("");
@@ -85,10 +92,8 @@ function OnboardingContent({ onComplete }: OnboardingProps) {
     audience: "",
     excluded: "",
   });
-  const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>(["wordpress"]);
+  const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>([]);
   const [scheduleData, setScheduleData] = useState<ScheduleData | null>(null);
-
-  // Billing Interval State
   const [billingInterval, setBillingInterval] = useState<BillingInterval>("monthly");
 
   // Step transitions
@@ -112,16 +117,16 @@ function OnboardingContent({ onComplete }: OnboardingProps) {
 
   const handleScheduleComplete = (data: ScheduleData) => {
     setScheduleData(data);
-    navigateToStep(5); // Go to Paywall
+    navigateToStep(5);
   };
 
   const handleUpgradePlanFromSchedule = (tier: PlanId) => {
-    navigateToStep(5, tier); // Open paywall with tier
+    navigateToStep(5, tier);
   };
 
   const handleSelectPlan = (plan: PlanTier, interval: BillingInterval) => {
     setBillingInterval(interval);
-    navigateToStep(6, plan.id); // Go to Checkout
+    navigateToStep(6, plan.id);
   };
 
   const handleBackToPlans = () => {
@@ -149,9 +154,7 @@ function OnboardingContent({ onComplete }: OnboardingProps) {
     if (onComplete) {
       onComplete();
     } else {
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 1200);
+      navigateToStep(7);
     }
   };
 
@@ -185,12 +188,14 @@ function OnboardingContent({ onComplete }: OnboardingProps) {
               <StepPreferences
                 onContinue={handlePreferencesContinue}
                 initialData={preferences}
+                workspaceId={targetWorkspaceId}
               />
             )}
             {currentStep === 3 && (
               <StepConnectPlatforms
                 onContinue={handlePlatformsContinue}
                 initialConnected={connectedPlatforms}
+                workspaceId={targetWorkspaceId}
               />
             )}
             {currentStep === 4 && (
@@ -199,6 +204,7 @@ function OnboardingContent({ onComplete }: OnboardingProps) {
                 onUpgradePlan={handleUpgradePlanFromSchedule}
                 planTier={activePlanTier.id}
                 initialData={scheduleData || undefined}
+                workspaceId={targetWorkspaceId}
               />
             )}
           </div>
@@ -224,6 +230,21 @@ function OnboardingContent({ onComplete }: OnboardingProps) {
             interval={billingInterval}
             onBack={handleBackToPlans}
             onConfirmPayment={handleFinalPaymentConfirm}
+            isCancelled={isCancelled}
+          />
+        </Card>
+      )}
+
+      {/* Screen 7: Setup Review & Completion */}
+      {currentStep === 7 && (
+        <Card className="relative z-10 w-full max-w-2xl bg-white/75 backdrop-blur-2xl rounded-[36px] shadow-[0_30px_70px_-15px_rgba(90,110,170,0.22),0_0_0_1px_rgba(255,255,255,0.8)] border border-white/80 p-8 sm:p-10 transition-all duration-300 ring-0">
+          <StepCompleted
+            feedUrl={feedUrl}
+            feedTitle={feedTitle}
+            preferences={preferences}
+            connectedPlatforms={connectedPlatforms}
+            scheduleData={scheduleData}
+            plan={activePlanTier}
           />
         </Card>
       )}

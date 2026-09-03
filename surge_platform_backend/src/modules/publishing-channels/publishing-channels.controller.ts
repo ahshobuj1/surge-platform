@@ -12,6 +12,8 @@ import {
 import { PublishingChannelsService } from "./publishing-channels.service";
 import { CreatePublishingChannelDto } from "./dto/create-publishing-channel.dto";
 import { UpdatePublishingChannelDto } from "./dto/update-publishing-channel.dto";
+import { ValidateWordpressDto } from "./dto/validate-wordpress.dto";
+import { ConnectWordpressDto } from "./dto/connect-wordpress.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
 import { Roles } from "../auth/decorators/roles.decorator";
@@ -29,6 +31,19 @@ export class PublishingChannelsController {
   constructor(
     private readonly publishingChannelsService: PublishingChannelsService,
   ) {}
+
+  @Post("wordpress/validate")
+  validateWordpress(@Body() dto: ValidateWordpressDto) {
+    return this.publishingChannelsService.validateWordpress(dto);
+  }
+
+  @Post("wordpress/connect")
+  connectWordpress(
+    @Body() dto: ConnectWordpressDto,
+    @GetUser() user: AuthenticatedUser,
+  ) {
+    return this.publishingChannelsService.connectWordpress(dto, user);
+  }
 
   @Post()
   create(

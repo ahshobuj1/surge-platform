@@ -20,6 +20,7 @@ import { QueueConfigDto } from "./dto/queue-config.dto";
 import { AutoPostToggleDto } from "./dto/auto-post-toggle.dto";
 import { CreateWorkspaceDto } from "./dto/create-workspace.dto";
 import { ValidateRssSourceDto } from "./dto/validate-rss-source.dto";
+import { UpdatePreferencesDto } from "./dto/update-preferences.dto";
 import { RssSchedulerService } from "./rss-scheduler.service";
 import { RssSourcesService } from "./rss-sources.service";
 import { AutopilotSchedulerService } from "../autopilot/autopilot-scheduler.service";
@@ -144,5 +145,43 @@ export class WorkspacesController {
       },
       user,
     );
+  }
+
+  @Get(":workspaceId/preferences")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin", "customer")
+  @ApiOperation({ summary: "Get workspace editorial preferences" })
+  @ApiResponse({
+    status: 200,
+    description: "Workspace editorial preferences returned successfully",
+  })
+  getPreferences(
+    @Param("workspaceId") workspaceId: string,
+    @GetUser() user: AuthenticatedUser,
+  ) {
+    return this.workspacesService.getPreferences(workspaceId, user);
+  }
+
+  @Patch(":workspaceId/preferences")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin", "customer")
+  @ApiOperation({ summary: "Update workspace editorial preferences" })
+  @ApiBody({ type: UpdatePreferencesDto })
+  @ApiResponse({
+    status: 200,
+    description: "Workspace editorial preferences updated successfully",
+  })
+  async updatePreferences(
+    @Param("workspaceId") workspaceId: string,
+    @Body() dto: UpdatePreferencesDto,
+    @GetUser() user: AuthenticatedUser,
+  ) {
+    const updated = await this.workspacesService.updatePreferences(
+      workspaceId,
+      dto,
+      user,
+    );
+    await this.scheduler.onWorkspaceConfigChange(workspaceId);
+    return updated;
   }
 }

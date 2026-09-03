@@ -131,4 +131,85 @@ describe("WorkspacesService", () => {
       where: { id: "workspace-1" },
     });
   });
+
+  it("updatePreferences throws BadRequestException if audience is empty or has no valid tags", async () => {
+    prisma.workspace.findUnique.mockResolvedValue({
+      id: "workspace-1",
+      companyId: "company-1",
+      company: { ownerId: "user-1" },
+    });
+
+    await expect(
+      service.updatePreferences(
+        "workspace-1",
+        {
+          tone: "Professional & Objective",
+          audience: "   , ,  , ",
+        },
+        { userId: "user-1", role: "customer" },
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("updatePreferences sanitizes comma-separated audience and excluded topics and saves to queueConfig", async () => {
+    prisma.workspace.findUnique.mockResolvedValue({
+      id: "workspace-1",
+      companyId: "company-1",
+      company: { ownerId: "user-1" },
+      queueConfig: { autoPost: true },
+    });
+    prisma.workspace.update.mockResolvedValue({
+      id: "workspace-1",
+      queueConfig: {},
+    });
+
+    const res = await service.updatePreferences(
+      "workspace-1",
+      {
+        tone: "Conversational & Engaging",
+        audience: "CTOs, developers, Developers, Tech Founders ,  ",
+        excluded: "Politics, crypto, Politics",
+      },
+      { userId: "user-1", role: "customer" },
+    );
+
+    expect(prisma.workspace.update).toHaveBeenCalledWith({
+      where: { id: "workspace-1" },
+      data: {
+        queueConfig: {
+          autoPost: true,
+          brandVoice: "Conversational & Engaging",
+          targetAudience: "CTOs, developers, Tech Founders",
+          editorialRules: ["Politics", "crypto"],
+        },
+      },
+    });
+
+    expect(res.tone).toBe("Conversational & Engaging");
+    expect(res.audience).toBe("CTOs, developers, Tech Founders");
+    expect(res.audiencesList).toEqual(["CTOs", "developers", "Tech Founders"]);
+    expect(res.excludedList).toEqual(["Politics", "crypto"]);
+  });
+
+  it("getPreferences returns current editorial style from workspace queueConfig", async () => {
+    prisma.workspace.findUnique.mockResolvedValue({
+      id: "workspace-1",
+      companyId: "company-1",
+      company: { ownerId: "user-1" },
+      queueConfig: {
+        brandVoice: "Technical & In-depth",
+        targetAudience: "Security Engineers, CISOs",
+        editorialRules: ["AI Hype"],
+      },
+    });
+
+    const res = await service.getPreferences("workspace-1", {
+      userId: "user-1",
+      role: "customer",
+    });
+
+    expect(res.tone).toBe("Technical & In-depth");
+    expect(res.audiencesList).toEqual(["Security Engineers", "CISOs"]);
+    expect(res.excludedList).toEqual(["AI Hype"]);
+  });
 });

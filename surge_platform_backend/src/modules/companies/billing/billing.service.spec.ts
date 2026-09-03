@@ -168,6 +168,41 @@ describe("BillingService", () => {
         checkoutUrl: "https://checkout.stripe.com/pay/cs_test_abc",
       });
     });
+
+    it("should use custom successUrl and cancelUrl when provided in DTO", async () => {
+      prisma.company.findFirst.mockResolvedValue({
+        id: "comp-1",
+        name: "Test Corp",
+        stripeCustomerId: "cus_123",
+        owner: { email: "owner@test.com" },
+      });
+      mockStripeCheckoutSessionsCreate.mockResolvedValue({
+        url: "https://checkout.stripe.com/pay/cs_test_custom",
+      });
+
+      const result = await service.createCheckoutSession(
+        {
+          tier: "pro",
+          interval: "monthly",
+          successUrl: "https://myapp.com/onboarding?step=completed",
+          cancelUrl:
+            "https://myapp.com/onboarding?step=checkout&cancelled=true",
+        },
+        { userId: "user-1", role: "customer" },
+      );
+
+      expect(mockStripeCheckoutSessionsCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success_url:
+            "https://myapp.com/onboarding?step=completed&session_id={CHECKOUT_SESSION_ID}",
+          cancel_url:
+            "https://myapp.com/onboarding?step=checkout&cancelled=true",
+        }),
+      );
+      expect(result.checkoutUrl).toBe(
+        "https://checkout.stripe.com/pay/cs_test_custom",
+      );
+    });
   });
 
   describe("createPortalSession", () => {

@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsIn, IsNotEmpty, IsString } from "class-validator";
+import { IsIn, IsNotEmpty, IsOptional, IsString } from "class-validator";
 
 export class CreateCheckoutSessionDto {
   @ApiProperty({
@@ -21,4 +21,24 @@ export class CreateCheckoutSessionDto {
   @IsNotEmpty()
   @IsIn(["monthly", "annual", "yearly"])
   interval: "monthly" | "annual" | "yearly";
+
+  @ApiProperty({
+    description: "Custom success redirect URL for Stripe Checkout",
+    required: false,
+    example:
+      "https://app.surgeplatform.io/onboarding?step=completed&session_id={CHECKOUT_SESSION_ID}",
+  })
+  @IsOptional()
+  @IsString()
+  successUrl?: string;
+
+  @ApiProperty({
+    description: "Custom cancel redirect URL for Stripe Checkout",
+    required: false,
+    example:
+      "https://app.surgeplatform.io/onboarding?step=checkout&cancelled=true",
+  })
+  @IsOptional()
+  @IsString()
+  cancelUrl?: string;
 }

@@ -1,10 +1,8 @@
 import {
-  IsObject,
   IsOptional,
   IsNumber,
   Min,
   IsArray,
-  ArrayNotEmpty,
   IsString,
   IsBoolean,
 } from "class-validator";
@@ -40,4 +38,16 @@ export class QueueConfigDto {
   @IsArray()
   @IsString({ each: true })
   editorialRules?: string[];
+
+  @IsOptional()
+  @IsString()
+  timezone?: string;
+
+  @IsOptional()
+  @IsString()
+  publishingFrequency?: string;
+
+  @IsOptional()
+  @IsString()
+  publishingWeekday?: string;
 }

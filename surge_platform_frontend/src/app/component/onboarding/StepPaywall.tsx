@@ -3,8 +3,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,24 +26,39 @@ export const PLAN_TIERS: PlanTier[] = [
     monthlyPrice: 19,
     yearlyPrice: 15,
     description: "Great for getting started.",
-    features: ["5 RSS Feeds", "Weekly Publishing"],
+    features: [
+      "5 RSS Feeds",
+      "3 Publishing Channels",
+      "50 Monthly Posts",
+      "Daily Publishing",
+    ],
   },
   {
     id: "pro",
     name: "Pro",
     monthlyPrice: 49,
     yearlyPrice: 39,
-    description: "Great for getting started.",
+    description: "Best for growing content creators.",
     isPopular: true,
-    features: ["10 RSS Feeds", "Daily Publishing"],
+    features: [
+      "20 RSS Feeds",
+      "10 Publishing Channels",
+      "200 Monthly Posts",
+      "Priority AI Generation",
+    ],
   },
   {
     id: "enterprise",
     name: "Enterprise",
     monthlyPrice: 99,
     yearlyPrice: 79,
-    description: "Great for getting started.",
-    features: ["15 RSS Feeds", "Flexible Publishing", "Multiple Publishing Daily"],
+    description: "For agencies & high-volume publishers.",
+    features: [
+      "50 RSS Feeds",
+      "25 Publishing Channels",
+      "1,000 Monthly Posts",
+      "Multiple Daily Runs",
+    ],
   },
 ];
 
@@ -57,16 +70,13 @@ interface StepPaywallProps {
 
 export function StepPaywall({
   onSelectPlan,
-  defaultPlanId = "pro",
   defaultInterval = "monthly",
 }: StepPaywallProps) {
   const [interval, setInterval] = useState<BillingInterval>(defaultInterval);
-  const [selectedPlanId, setSelectedPlanId] = useState<PlanId>(defaultPlanId);
 
   const isYearly = interval === "yearly";
 
   const handleChoosePlan = (plan: PlanTier) => {
-    setSelectedPlanId(plan.id);
     onSelectPlan(plan, interval);
   };
 

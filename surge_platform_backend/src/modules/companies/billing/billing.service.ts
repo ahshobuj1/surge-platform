@@ -116,8 +116,13 @@ export class BillingService {
           tier,
         },
         client_reference_id: company.id,
-        success_url: `${frontendUrl}/dashboard?billing=success&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${frontendUrl}/dashboard?billing=cancelled`,
+        success_url: dto.successUrl
+          ? dto.successUrl.includes("{CHECKOUT_SESSION_ID}")
+            ? dto.successUrl
+            : `${dto.successUrl}${dto.successUrl.includes("?") ? "&" : "?"}session_id={CHECKOUT_SESSION_ID}`
+          : `${frontendUrl}/dashboard?billing=success&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url:
+          dto.cancelUrl || `${frontendUrl}/dashboard?billing=cancelled`,
       });
 
       if (!session.url) {

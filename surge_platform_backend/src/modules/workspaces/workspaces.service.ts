@@ -3,8 +3,10 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../common/context/prisma.service";
 import { CreateWorkspaceDto } from "./dto/create-workspace.dto";
+import { UpdatePreferencesDto } from "./dto/update-preferences.dto";
 import { mergeQueueConfig, QueueConfig } from "./helpers/workspace-config.util";
 import {
   assertCompanyOwnerOrAdmin,
@@ -124,7 +126,115 @@ export class WorkspacesService {
 
     return this.prisma.workspace.update({
       where: { id: workspaceId },
-      data: { queueConfig: mergedConfig as any },
+      data: {
+        queueConfig: mergedConfig as unknown as Prisma.InputJsonValue,
+      },
     });
+  }
+
+  async updatePreferences(
+    workspaceId: string,
+    dto: UpdatePreferencesDto,
+    user: AuthenticatedUser,
+  ) {
+    await assertWorkspaceAccess(this.prisma, workspaceId, user, "update");
+
+    const ws = await this.prisma.workspace.findUnique({
+      where: { id: workspaceId },
+    });
+    if (!ws) throw new NotFoundException("Workspace not found");
+
+    // Parse, sanitize, and validate comma-separated audience
+    const rawAudience = dto.audience || "";
+    const seenAudience = new Set<string>();
+    const sanitizedAudiences: string[] = [];
+
+    for (const raw of rawAudience.split(",")) {
+      const trimmed = raw.trim();
+      const lower = trimmed.toLowerCase();
+      if (
+        trimmed.length >= 2 &&
+        trimmed.length <= 50 &&
+        !seenAudience.has(lower)
+      ) {
+        seenAudience.add(lower);
+        sanitizedAudiences.push(trimmed);
+      }
+    }
+
+    if (sanitizedAudiences.length === 0) {
+      throw new BadRequestException(
+        "Please provide at least one valid target audience tag (each between 2 and 50 characters, e.g. 'CTOs, Developers').",
+      );
+    }
+
+    // Parse optional excluded topics / editorial rules
+    const rawExcluded = dto.excluded || "";
+    const seenExcluded = new Set<string>();
+    const sanitizedExcluded: string[] = [];
+
+    if (rawExcluded.trim()) {
+      for (const raw of rawExcluded.split(",")) {
+        const trimmed = raw.trim();
+        const lower = trimmed.toLowerCase();
+        if (
+          trimmed.length >= 2 &&
+          trimmed.length <= 50 &&
+          !seenExcluded.has(lower)
+        ) {
+          seenExcluded.add(lower);
+          sanitizedExcluded.push(trimmed);
+        }
+      }
+    }
+
+    const existingConfig = (ws.queueConfig as QueueConfig | null) ?? {};
+    const updatedConfig: QueueConfig = {
+      ...existingConfig,
+      brandVoice: dto.tone.trim(),
+      targetAudience: sanitizedAudiences.join(", "),
+      editorialRules: sanitizedExcluded,
+    };
+
+    await this.prisma.workspace.update({
+      where: { id: workspaceId },
+      data: {
+        queueConfig: updatedConfig as unknown as Prisma.InputJsonValue,
+      },
+    });
+
+    return {
+      tone: updatedConfig.brandVoice,
+      audience: updatedConfig.targetAudience,
+      audiencesList: sanitizedAudiences,
+      excluded: sanitizedExcluded.join(", "),
+      excludedList: sanitizedExcluded,
+    };
+  }
+
+  async getPreferences(workspaceId: string, user: AuthenticatedUser) {
+    await assertWorkspaceAccess(this.prisma, workspaceId, user, "view");
+
+    const ws = await this.prisma.workspace.findUnique({
+      where: { id: workspaceId },
+    });
+    if (!ws) throw new NotFoundException("Workspace not found");
+
+    const config = (ws.queueConfig as QueueConfig | null) ?? {};
+    const audienceStr = config.targetAudience || "";
+    const rules = config.editorialRules || [];
+
+    return {
+      tone: config.brandVoice || "Professional & Objective",
+      audience: audienceStr,
+      audiencesList: audienceStr
+        ? audienceStr
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : [],
+      excluded: rules.join(", "),
+      excludedList: rules,
+    };
   }
 }

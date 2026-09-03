@@ -1,13 +1,17 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
+import { Prisma, PublishingChannel } from "@prisma/client";
 import { PrismaService } from "../../common/context/prisma.service";
 import { EncryptionService } from "../../common/security/encryption.service";
 import { CreatePublishingChannelDto } from "./dto/create-publishing-channel.dto";
 import { UpdatePublishingChannelDto } from "./dto/update-publishing-channel.dto";
+import { ValidateWordpressDto } from "./dto/validate-wordpress.dto";
+import { ConnectWordpressDto } from "./dto/connect-wordpress.dto";
 import {
   assertWorkspaceAccess,
   AuthenticatedUser,
 } from "../workspaces/helpers/workspace-auth.util";
 import { assertTierLimit } from "../companies/billing/tier-limits.config";
+import { validateWordpressConnection } from "./helpers/wordpress-validator.util";
 
 @Injectable()
 export class PublishingChannelsService {
@@ -15,6 +19,100 @@ export class PublishingChannelsService {
     private readonly prisma: PrismaService,
     private readonly encryptionService: EncryptionService,
   ) {}
+
+  async validateWordpress(dto: ValidateWordpressDto) {
+    return validateWordpressConnection(
+      dto.siteUrl,
+      dto.username,
+      dto.applicationPassword,
+    );
+  }
+
+  async connectWordpress(dto: ConnectWordpressDto, user: AuthenticatedUser) {
+    await assertWorkspaceAccess(this.prisma, dto.workspaceId, user, "update");
+
+    // 1. Assert tier limit for new channels
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id: dto.workspaceId },
+      select: { company: { select: { ownerId: true } } },
+    });
+
+    if (workspace?.company?.ownerId) {
+      const subscription = await this.prisma.subscription.findUnique({
+        where: { userId: workspace.company.ownerId },
+      });
+
+      const existingWp = await this.prisma.publishingChannel.findFirst({
+        where: {
+          workspaceId: dto.workspaceId,
+          platform: "wordpress",
+          isActive: true,
+        },
+      });
+
+      if (!existingWp) {
+        const activeChannels = await this.prisma.publishingChannel.count({
+          where: { workspaceId: dto.workspaceId, isActive: true },
+        });
+
+        assertTierLimit("channel", activeChannels, subscription?.tier);
+      }
+    }
+
+    // 2. Validate live credentials via WordPress REST API
+    const validated = await validateWordpressConnection(
+      dto.siteUrl,
+      dto.username,
+      dto.applicationPassword,
+    );
+
+    const credentialsPayload = {
+      platform: "wordpress",
+      siteUrl: validated.siteUrl,
+      apiUrl: validated.siteUrl,
+      username: dto.username.trim(),
+      password: dto.applicationPassword.trim(),
+      siteName: validated.siteName,
+      siteDescription: validated.siteDescription,
+      wpUser: validated.user,
+      canPublish: validated.canPublish,
+    };
+
+    const encryptedCredentials =
+      this.encryptionService.encrypt(credentialsPayload);
+
+    // 3. Upsert or update existing WordPress channel for this workspace
+    const existingChannel = await this.prisma.publishingChannel.findFirst({
+      where: { workspaceId: dto.workspaceId, platform: "wordpress" },
+    });
+
+    let channel: PublishingChannel;
+    if (existingChannel) {
+      channel = await this.prisma.publishingChannel.update({
+        where: { id: existingChannel.id },
+        data: {
+          encryptedCredentials,
+          isActive: true,
+        },
+      });
+    } else {
+      channel = await this.prisma.publishingChannel.create({
+        data: {
+          workspaceId: dto.workspaceId,
+          platform: "wordpress",
+          encryptedCredentials,
+          isActive: true,
+        },
+      });
+    }
+
+    return {
+      ...this.sanitizeChannel(channel),
+      siteName: validated.siteName,
+      wpUser: validated.user,
+      canPublish: validated.canPublish,
+    };
+  }
 
   async create(dto: CreatePublishingChannelDto, user: AuthenticatedUser) {
     if (dto.workspaceId) {
@@ -133,12 +231,12 @@ export class PublishingChannelsService {
       );
     }
 
-    const data: Record<string, any> = {};
+    const data: Prisma.PublishingChannelUpdateInput = {};
     if (dto.platform) data.platform = dto.platform;
     if (typeof dto.isActive === "boolean") data.isActive = dto.isActive;
-    if ((dto as any).credentials) {
+    if (dto.credentials) {
       data.encryptedCredentials = this.encryptionService.encrypt(
-        (dto as any).credentials,
+        dto.credentials,
       );
     }
 
@@ -171,27 +269,29 @@ export class PublishingChannelsService {
     return this.prisma.publishingChannel.delete({ where: { id } });
   }
 
-  private sanitizeChannel(channel: any) {
-    let credentialsSummary: Record<string, any> = { isConfigured: true };
+  private sanitizeChannel(channel: PublishingChannel) {
+    let credentialsSummary: Record<string, unknown> = { isConfigured: true };
     try {
       const decrypted = this.encryptionService.decrypt(
         channel.encryptedCredentials,
       );
       if (decrypted && typeof decrypted === "object") {
+        const dec = decrypted as Record<string, unknown>;
         credentialsSummary = {
           isConfigured: true,
           platform: channel.platform,
-          authorUrl:
-            decrypted.authorUrl ||
-            decrypted.wpUrl ||
-            decrypted.siteUrl ||
-            undefined,
-          targetType: decrypted.organizationUrn
+          authorUrl: dec.authorUrl || dec.wpUrl || dec.siteUrl || undefined,
+          siteUrl: dec.siteUrl || dec.apiUrl || undefined,
+          siteName: dec.siteName || undefined,
+          username: dec.username || undefined,
+          targetType: dec.organizationUrn
             ? "organization"
-            : decrypted.personUrn
+            : dec.personUrn
               ? "person"
               : undefined,
-          hasAccessToken: Boolean(decrypted.accessToken || decrypted.apiKey),
+          hasAccessToken: Boolean(
+            dec.accessToken || dec.apiKey || dec.password,
+          ),
         };
       }
     } catch {
@@ -199,6 +299,8 @@ export class PublishingChannelsService {
     }
 
     const { encryptedCredentials, ...safeChannel } = channel;
+    void encryptedCredentials;
+
     return {
       ...safeChannel,
       credentials: credentialsSummary,
