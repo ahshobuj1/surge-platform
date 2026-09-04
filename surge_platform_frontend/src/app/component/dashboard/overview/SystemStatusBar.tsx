@@ -23,41 +23,37 @@ export function SystemStatusBar({
   ];
 
   return (
-    <div className="w-full bg-white rounded-md shadow-sm border border-slate-100 overflow-hidden">
-      <div className="flex flex-col sm:flex-row items-stretch divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+    <div className="w-full bg-white rounded-2xl shadow-xs border border-white/60 overflow-hidden flex flex-col sm:flex-row items-stretch">
+      {/* System Status — pure white section */}
+      <div className="bg-white px-7 py-5 sm:w-56 flex flex-col justify-center gap-1.5 shrink-0">
+        <p className="text-sm sm:text-base font-bold text-slate-900">System Status</p>
+        <span
+          className={cn(
+            "inline-block w-fit text-xs font-semibold px-2.5 py-0.5 rounded-full",
+            status === "Active" && "bg-[#DFFBE8] text-[#16A34A]",
+            status === "Paused" && "bg-[#FEF6E7] text-[#D97706]",
+            status === "Error"  && "bg-[#FEECEC] text-[#EF4444]"
+          )}
+        >
+          {status}
+        </span>
+      </div>
 
-        {/* System Status — slate bg section */}
-        <div className="bg-slate-50 px-6 py-5 sm:min-w-[190px] flex flex-col justify-center gap-2">
-          <p className="text-base font-bold text-foreground">System Status</p>
-          <span
-            className={cn(
-              "inline-block w-fit text-xs font-semibold px-3 py-1 rounded-full",
-              status === "Active" && "bg-emerald-100 text-emerald-600",
-              status === "Paused" && "bg-amber-100 text-amber-600",
-              status === "Error"  && "bg-red-100 text-red-500"
-            )}
+      {/* Stats grid — soft tinted background section */}
+      <div className="flex-1 bg-[#EEF3FE] px-4 py-5 grid grid-cols-2 sm:grid-cols-4 gap-4 items-center">
+        {stats.map((stat) => (
+          <div
+            key={stat.label}
+            className="flex flex-col items-center justify-center text-center"
           >
-            {status}
-          </span>
-        </div>
-
-        {/* Stats grid — responsive: 2x2 on mobile, row on desktop */}
-        <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-slate-100">
-          {stats.map((stat) => (
-            <div
-              key={stat.label}
-              className="flex flex-col items-center justify-center gap-1 px-4 py-5 text-center"
-            >
-              <p className="text-sm text-muted-foreground font-medium whitespace-nowrap">
-                {stat.label}
-              </p>
-              <p className="text-2xl sm:text-3xl font-bold text-foreground whitespace-nowrap">
-                {stat.value}
-              </p>
-            </div>
-          ))}
-        </div>
-
+            <p className="text-xs text-slate-400 font-normal whitespace-nowrap">
+              {stat.label}
+            </p>
+            <p className="text-sm sm:text-base font-bold text-slate-900 mt-1 whitespace-nowrap">
+              {stat.value}
+            </p>
+          </div>
+        ))}
       </div>
     </div>
   );

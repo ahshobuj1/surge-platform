@@ -26,6 +26,8 @@ export interface User {
   isEmailVerified?: boolean;
   isOnboarded?: boolean;
   companyId?: string;
+  companyName?: string;
+  mailingAddress?: string;
   createdAt?: string;
 }
 
@@ -93,9 +95,9 @@ export interface Workspace {
 export interface RssFeed {
   id: string;
   workspaceId: string;
-  name: string;
+  name?: string;
   feedUrl: string;
-  status: 'active' | 'inactive';
+  status: 'active' | 'inactive' | 'error' | string;
   lastFetchedAt?: string;
   createdAt?: string;
 }
@@ -176,6 +178,14 @@ export interface PublishingChannel {
   platform: string;
   channelName: string;
   isActive: boolean;
+  credentials?: {
+    isConfigured?: boolean;
+    platform?: string;
+    channelName?: string;
+    siteUrl?: string;
+    siteName?: string;
+    username?: string;
+  };
   accessToken?: string;
   refreshToken?: string;
   createdAt?: string;

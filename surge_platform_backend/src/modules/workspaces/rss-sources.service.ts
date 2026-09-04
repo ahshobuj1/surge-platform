@@ -72,7 +72,8 @@ export class RssSourcesService {
   async list(workspaceId: string) {
     await this.getWorkspaceAndCompanyOwner(workspaceId);
     return this.prisma.rssFeed.findMany({
-      where: { workspaceId, status: "active" },
+      where: { workspaceId, status: { not: "inactive" } },
+      orderBy: { createdAt: "desc" },
     });
   }
 

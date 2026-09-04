@@ -2,12 +2,6 @@
 
 import { Check, Loader2 } from "lucide-react";
 import { JobEntry } from "./types";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
-} from "@/components/ui/table";
 
 interface JobLogProps {
   jobs: JobEntry[];
@@ -15,41 +9,37 @@ interface JobLogProps {
 
 export function JobLog({ jobs }: JobLogProps) {
   return (
-    <div className="bg-[#eef0fb] rounded-2xl border border-border/40 p-5">
-      <h3 className="text-sm font-bold text-foreground mb-3">Job Log</h3>
+    <div className="bg-[#EEF3FE] rounded-2xl border border-white/60 p-5 shadow-xs">
+      <h3 className="text-sm font-bold text-slate-800 mb-3.5">Job Log</h3>
 
-      <Table>
-        <TableBody>
-          {jobs.map((job, i) => (
-            <TableRow
-              key={i}
-              className="border-b border-border/40 hover:bg-transparent last:border-b-0"
-            >
-              {/* Time */}
-              <TableCell className="py-3.5 pl-2 pr-4 w-[400px]">
-                <span className="text-xs font-medium text-indigo-400 whitespace-nowrap">
-                  {job.time}
-                </span>
-              </TableCell>
+      <div className="bg-white rounded-xl divide-y divide-slate-100 overflow-hidden shadow-xs">
+        {jobs.map((job, i) => (
+          <div
+            key={i}
+            className="flex items-center justify-between px-4 py-3 text-xs"
+          >
+            {/* Time */}
+            <span className="text-slate-400 font-normal w-20 shrink-0">
+              {job.time}
+            </span>
 
-              {/* Label */}
-              <TableCell className="py-3.5 px-2">
-                <span className="text-sm text-foreground">{job.label}</span>
-              </TableCell>
+            {/* Label */}
+            <span className="font-semibold text-slate-700 flex-1 px-2">
+              {job.label}
+            </span>
 
-              {/* Status icon */}
-              <TableCell className="py-3.5 pr-2 w-8 text-right">
-                {job.status === "done" && (
-                  <Check className="w-4 h-4 text-emerald-500 ml-auto" />
-                )}
-                {job.status === "running" && (
-                  <Loader2 className="w-4 h-4 text-muted-foreground/50 ml-auto animate-spin" />
-                )}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+            {/* Status icon */}
+            <div className="shrink-0 flex items-center justify-end w-6">
+              {job.status === "done" && (
+                <Check className="w-4 h-4 text-emerald-500 stroke-[2.5]" />
+              )}
+              {job.status === "running" && (
+                <Loader2 className="w-4 h-4 text-slate-300 animate-spin" />
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

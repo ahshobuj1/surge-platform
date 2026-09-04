@@ -1,42 +1,126 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Globe,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Trash2,
+  ExternalLink,
+  Power,
+  RefreshCw,
+  Info,
+  ShieldCheck,
+} from "lucide-react";
 import { useWorkspace } from "@/lib/context/WorkspaceContext";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { PublishingChannel } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Linkedin, Facebook, Twitter, Instagram, Globe, Plus } from "lucide-react";
+
+interface ValidatedWpResponse {
+  isValid: boolean;
+  siteUrl: string;
+  siteName: string;
+  siteDescription?: string;
+  user: {
+    id: number;
+    name: string;
+    slug: string;
+    roles?: string[];
+  };
+  canPublish: boolean;
+}
+
+interface UpcomingPlatform {
+  id: string;
+  name: string;
+  category: "Social" | "CMS";
+  description: string;
+  iconBg: string;
+  iconColor: string;
+}
+
+const UPCOMING_PLATFORMS: UpcomingPlatform[] = [
+  {
+    id: "webflow",
+    name: "Webflow",
+    category: "CMS",
+    description: "Direct CMS Collection sync for Webflow sites and blogs.",
+    iconBg: "bg-blue-50",
+    iconColor: "text-blue-600",
+  },
+  {
+    id: "ghost",
+    name: "Ghost",
+    category: "CMS",
+    description: "Publish stories via Ghost Admin API and webhooks.",
+    iconBg: "bg-amber-50",
+    iconColor: "text-amber-600",
+  },
+  {
+    id: "medium",
+    name: "Medium",
+    category: "CMS",
+    description: "Syndicate drafts and stories to Medium publications.",
+    iconBg: "bg-slate-100",
+    iconColor: "text-slate-800",
+  },
+  {
+    id: "linkedin",
+    name: "LinkedIn",
+    category: "Social",
+    description: "Publish articles and post updates to profiles and company pages.",
+    iconBg: "bg-sky-50",
+    iconColor: "text-sky-700",
+  },
+  {
+    id: "twitter",
+    name: "X / Twitter",
+    category: "Social",
+    description: "Automate thread generation and key takeaway summaries.",
+    iconBg: "bg-slate-100",
+    iconColor: "text-slate-900",
+  },
+  {
+    id: "facebook",
+    name: "Facebook",
+    category: "Social",
+    description: "Distribute blog highlights and links directly to Facebook Pages.",
+    iconBg: "bg-indigo-50",
+    iconColor: "text-indigo-600",
+  },
+];
 
 export function SettingsPublishing() {
   const { activeWorkspace } = useWorkspace();
   const [channels, setChannels] = useState<PublishingChannel[]>([]);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+
+  // Form State
+  const [siteUrl, setSiteUrl] = useState("");
+  const [username, setUsername] = useState("");
+  const [applicationPassword, setApplicationPassword] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Feedback states
+  const [validationResult, setValidationResult] = useState<ValidatedWpResponse | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
-  // CMS State
-  const [selectedCms, setSelectedCms] = useState<
-    "WORDPRESS" | "WEBFLOW" | "GHOST" | "MEDIUM" | "CUSTOM"
-  >("WORDPRESS");
-  const [cmsUrl, setCmsUrl] = useState("");
-  const [cmsApiKey, setCmsApiKey] = useState("");
-
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3030";
-
-  const fetchChannels = async () => {
+  const refreshChannels = async () => {
     if (!activeWorkspace?.id) return;
-    setLoading(true);
     try {
+      setLoading(true);
       const res = await api.get<PublishingChannel[]>(
         `/publishing-channels?workspaceId=${activeWorkspace.id}`
       );
       setChannels(Array.isArray(res) ? res : []);
-    } catch (err) {
-      console.error("Failed to fetch publishing channels:", err);
+    } catch {
       setChannels([]);
     } finally {
       setLoading(false);
@@ -44,396 +128,545 @@ export function SettingsPublishing() {
   };
 
   useEffect(() => {
-    fetchChannels();
-  }, [activeWorkspace?.id]);
+    let cancelled = false;
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const urlParams = new URLSearchParams(window.location.search);
-      const connectedPlatform = urlParams.get("connected");
-      const oauthError = urlParams.get("error");
+    async function loadInitialChannels() {
+      if (!activeWorkspace?.id) {
+        if (!cancelled) setLoading(false);
+        return;
+      }
 
-      if (connectedPlatform) {
-        setSuccessMsg(`Successfully connected ${connectedPlatform.toUpperCase()} channel!`);
-        window.history.replaceState({}, document.title, window.location.pathname);
-      } else if (oauthError) {
-        setErrorMsg(`OAuth Authorization Failed: ${oauthError}`);
-        window.history.replaceState({}, document.title, window.location.pathname);
+      try {
+        const res = await api.get<PublishingChannel[]>(
+          `/publishing-channels?workspaceId=${activeWorkspace.id}`
+        );
+        if (!cancelled) {
+          setChannels(Array.isArray(res) ? res : []);
+        }
+      } catch {
+        if (!cancelled) {
+          setChannels([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
-  }, []);
 
-  const handleConnectOAuth = (platform: "linkedin" | "facebook" | "wordpress") => {
-    if (!activeWorkspace?.id) return;
-    window.location.href = `${API_BASE_URL}/publishing-channels/oauth/${platform}/authorize?workspaceId=${activeWorkspace.id}`;
+    void loadInitialChannels();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeWorkspace?.id]);
+
+  const wpChannel = channels.find(
+    (c) => c.platform?.toLowerCase() === "wordpress"
+  );
+
+  const handleTestConnection = async () => {
+    const cleanUrl = siteUrl.trim();
+    const cleanUser = username.trim();
+    const cleanPass = applicationPassword.trim();
+
+    if (!cleanUrl || !cleanUser || !cleanPass) {
+      setErrorMsg("Please fill in Site URL, Username, and Application Password to test.");
+      return;
+    }
+
+    setTesting(true);
+    setErrorMsg("");
+    setValidationResult(null);
+
+    try {
+      const res = await api.post<ValidatedWpResponse>("/publishing-channels/wordpress/validate", {
+        siteUrl: cleanUrl,
+        username: cleanUser,
+        applicationPassword: cleanPass,
+      });
+
+      setValidationResult(res);
+      setSuccessMsg(`Connection verified! Connected to "${res.siteName}" as ${res.user.name}.`);
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        setErrorMsg(err.message);
+      } else if (err instanceof Error) {
+        setErrorMsg(err.message);
+      } else {
+        setErrorMsg("Failed to connect to WordPress. Please verify your URL and Application Password.");
+      }
+    } finally {
+      setTesting(false);
+    }
   };
 
-  const handleConnectCms = async () => {
-    if (!cmsUrl || !activeWorkspace?.id) {
-      setErrorMsg("Please enter the Site / Endpoint URL.");
+  const handleConnect = async () => {
+    if (!activeWorkspace?.id) {
+      setErrorMsg("Please select an active workspace first.");
+      return;
+    }
+
+    const cleanUrl = siteUrl.trim();
+    const cleanUser = username.trim();
+    const cleanPass = applicationPassword.trim();
+
+    if (!cleanUrl || !cleanUser || !cleanPass) {
+      setErrorMsg("Please fill in Site URL, Username, and Application Password.");
       return;
     }
 
     setConnecting(true);
     setErrorMsg("");
     setSuccessMsg("");
+
     try {
-      const newChannel = await api.post<PublishingChannel>("/publishing-channels", {
+      const connected = await api.post<PublishingChannel>("/publishing-channels/wordpress/connect", {
         workspaceId: activeWorkspace.id,
-        platform: selectedCms,
-        channelName: cmsUrl,
-        credentials: {
-          siteUrl: cmsUrl,
-          apiKey: cmsApiKey,
-          applicationPassword: cmsApiKey,
-        },
+        siteUrl: cleanUrl,
+        username: cleanUser,
+        applicationPassword: cleanPass,
       });
-      setChannels((prev) => [...prev, newChannel]);
-      setCmsUrl("");
-      setCmsApiKey("");
-      setSuccessMsg(`${selectedCms} platform connected successfully!`);
-    } catch (err: any) {
-      setErrorMsg(err.message || `Failed to connect ${selectedCms} channel.`);
+
+      setChannels((prev) => {
+        const withoutOld = prev.filter((c) => c.platform?.toLowerCase() !== "wordpress");
+        return [connected, ...withoutOld];
+      });
+
+      setSiteUrl("");
+      setUsername("");
+      setApplicationPassword("");
+      setValidationResult(null);
+      setIsEditing(false);
+      setSuccessMsg(`WordPress channel connected successfully to "${connected.channelName}"!`);
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        setErrorMsg(err.message);
+      } else if (err instanceof Error) {
+        setErrorMsg(err.message);
+      } else {
+        setErrorMsg("Failed to connect WordPress. Please check your credentials.");
+      }
     } finally {
       setConnecting(false);
     }
   };
 
-  const handleDisconnect = async (id: string) => {
+  const handleToggleActive = async (channel: PublishingChannel) => {
+    setTogglingId(channel.id);
+    setErrorMsg("");
+    setSuccessMsg("");
+
     try {
-      await api.delete(`/publishing-channels/${id}`);
-      setChannels((prev) => prev.filter((c) => c.id !== id));
-      setSuccessMsg("Channel disconnected successfully.");
-    } catch (err: any) {
-      setErrorMsg(err.message || "Failed to disconnect channel.");
+      const updated = await api.patch<PublishingChannel>(`/publishing-channels/${channel.id}`, {
+        isActive: !channel.isActive,
+      });
+
+      setChannels((prev) =>
+        prev.map((c) => (c.id === channel.id ? { ...c, isActive: updated.isActive } : c))
+      );
+
+      setSuccessMsg(`WordPress channel ${updated.isActive ? "activated" : "paused"}.`);
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        setErrorMsg(err.message);
+      } else if (err instanceof Error) {
+        setErrorMsg(err.message);
+      } else {
+        setErrorMsg("Failed to update channel status.");
+      }
+    } finally {
+      setTogglingId(null);
     }
   };
 
-  const linkedInChannels = channels.filter(
-    (c) => c.platform?.toUpperCase() === "LINKEDIN"
-  );
-  const facebookChannels = channels.filter(
-    (c) => c.platform?.toUpperCase() === "FACEBOOK"
-  );
+  const handleDisconnect = async (id: string) => {
+    setDisconnectingId(id);
+    setErrorMsg("");
+    setSuccessMsg("");
+
+    try {
+      await api.delete(`/publishing-channels/${id}`);
+      setChannels((prev) => prev.filter((c) => c.id !== id));
+      setIsEditing(false);
+      setSuccessMsg("WordPress channel disconnected successfully.");
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        setErrorMsg(err.message);
+      } else if (err instanceof Error) {
+        setErrorMsg(err.message);
+      } else {
+        setErrorMsg("Failed to disconnect channel.");
+      }
+    } finally {
+      setDisconnectingId(null);
+    }
+  };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 max-w-5xl w-full font-sans pb-12">
+      {/* Header */}
+      <div>
+        <h2 className="text-xl font-bold text-slate-900 tracking-tight">
+          Integrations & Publishing
+        </h2>
+        <p className="text-xs sm:text-sm text-slate-500 mt-1 font-normal">
+          Connect your content management system to automatically publish AI-generated drafts.
+        </p>
+      </div>
+
+      {/* Notifications */}
       {errorMsg && (
-        <div className="p-3 text-sm text-red-700 bg-red-50 rounded-lg border border-red-200">
-          {errorMsg}
+        <div className="p-4 text-xs font-medium text-red-700 bg-red-50 rounded-2xl border border-red-200 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+          <span>{errorMsg}</span>
         </div>
       )}
       {successMsg && (
-        <div className="p-3 text-sm text-emerald-700 bg-emerald-50 rounded-lg border border-emerald-200">
-          {successMsg}
+        <div className="p-4 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+          <span>{successMsg}</span>
         </div>
       )}
 
-      {/* Connected Channels List */}
-      {channels.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col gap-4">
-          <h2 className="text-lg font-bold text-slate-900">Connected Channels</h2>
-          <div className="flex flex-col gap-2">
-            {channels.map((ch) => (
-              <div key={ch.id} className="flex items-center justify-between p-3 bg-slate-50 border rounded-xl">
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700 uppercase">
-                    {ch.platform}
-                  </span>
-                  <span className="text-sm font-semibold text-slate-800">{ch.channelName}</span>
+      {/* ── 1. ACTIVE INTEGRATION: WORDPRESS ── */}
+      <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-white/80 flex flex-col gap-6">
+        {/* Card Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-[#0073AA] flex items-center justify-center shrink-0 shadow-sm">
+              <svg className="w-7 h-7 fill-white" viewBox="0 0 24 24">
+                <path d="M12 2C6.477 2 2 6.477 2 12c0 4.237 2.636 7.855 6.356 9.312L5.438 12.87A7.962 7.962 0 0 1 4.024 12c0-2.316.985-4.403 2.569-5.867l4.088 11.234a8.03 8.03 0 0 1-1.325.115c-.29 0-.665-.034-.665-.034-.403-.035-.461-.634-.058-.634 0 0 .605.035 1.152.035.548 0 1.18-.035 1.18-.035.404 0 .346.6-.057.634 0 0-.374.034-.664.034-.345 0-.893-.058-1.554-.173L12 21.975A9.97 9.97 0 0 0 12 22c5.523 0 10-4.477 10-10 0-4.148-2.527-7.705-6.136-9.213L18.59 12.95c.783-.49 1.386-1.295 1.386-2.42 0-1.642-1.18-2.822-2.706-2.822-.173 0-.317.029-.461.058l3.167 9.43A7.973 7.973 0 0 1 12 20c-.576 0-1.123-.058-1.642-.173l3.542-10.297c.547-1.44.922-2.593.922-3.514 0-1.325-.518-2.39-1.93-2.39-.748 0-1.468.375-2.072 1.008l-3.8 11.06L4.72 9.07C5.9 7.227 7.8 6 10 6c.547 0 1.094.086 1.613.23l-2.707 7.885 3.097-8.985Z" />
+              </svg>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-bold text-slate-900">WordPress REST API</h3>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase">
+                  Available Now
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Direct publishing to your WordPress blog using secure Application Passwords.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {wpChannel ? (
+              <span
+                className={cn(
+                  "text-xs font-semibold px-3 py-1 rounded-full border flex items-center gap-1.5",
+                  wpChannel.isActive
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : "bg-amber-50 text-amber-700 border-amber-200"
+                )}
+              >
+                <span
+                  className={cn(
+                    "w-2 h-2 rounded-full",
+                    wpChannel.isActive ? "bg-emerald-500" : "bg-amber-500"
+                  )}
+                />
+                {wpChannel.isActive ? "Connected & Active" : "Connected (Paused)"}
+              </span>
+            ) : (
+              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-blue-50 text-[#5060F0] border border-blue-200">
+                Ready to Connect
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* State A: WordPress Already Connected & Not in edit mode */}
+        {wpChannel && !isEditing ? (
+          <div className="flex flex-col gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Site Details Box */}
+              <div className="bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4 flex flex-col justify-between gap-2">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Target Website
+                </span>
+                <div>
+                  <p className="text-sm font-bold text-slate-900 truncate">
+                    {wpChannel.credentials?.siteName || wpChannel.channelName || "WordPress Site"}
+                  </p>
+                  {wpChannel.credentials?.siteUrl && (
+                    <a
+                      href={wpChannel.credentials.siteUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-[#5060F0] hover:underline flex items-center gap-1 mt-0.5"
+                    >
+                      <span className="truncate">{wpChannel.credentials.siteUrl}</span>
+                      <ExternalLink className="w-3 h-3 shrink-0" />
+                    </a>
+                  )}
                 </div>
+              </div>
+
+              {/* Author / Account Box */}
+              <div className="bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4 flex flex-col justify-between gap-2">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Author Account
+                </span>
+                <div>
+                  <p className="text-sm font-bold text-slate-900 truncate">
+                    {wpChannel.credentials?.username || "Authenticated User"}
+                  </p>
+                  <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    Application Password
+                  </p>
+                </div>
+              </div>
+
+              {/* Publishing Status Box */}
+              <div className="bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4 flex flex-col justify-between gap-2">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Publishing Status
+                </span>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-bold text-slate-900">
+                    {wpChannel.isActive ? "Publishing Enabled" : "Publishing Paused"}
+                  </p>
+                  <button
+                    onClick={() => handleToggleActive(wpChannel)}
+                    disabled={togglingId === wpChannel.id}
+                    title={wpChannel.isActive ? "Pause publishing" : "Enable publishing"}
+                    className={cn(
+                      "p-1.5 rounded-full transition-colors cursor-pointer",
+                      wpChannel.isActive
+                        ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                        : "bg-slate-200 text-slate-600 hover:bg-slate-300"
+                    )}
+                  >
+                    {togglingId === wpChannel.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Power className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions Bar */}
+            <div className="flex items-center justify-between pt-2 flex-wrap gap-3">
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() => handleDisconnect(ch.id)}
-                  className="text-xs text-red-600 font-semibold hover:underline"
+                  onClick={() => setIsEditing(true)}
+                  className="border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs px-4 py-2 rounded-full transition-colors cursor-pointer"
                 >
-                  Disconnect
+                  Update Credentials
+                </button>
+                <button
+                  onClick={() => refreshChannels()}
+                  disabled={loading}
+                  className="border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs px-4 py-2 rounded-full transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />
+                  Refresh
                 </button>
               </div>
-            ))}
+
+              <button
+                onClick={() => handleDisconnect(wpChannel.id)}
+                disabled={disconnectingId === wpChannel.id}
+                className="border border-red-200 hover:bg-red-50 text-red-600 font-semibold text-xs px-4 py-2 rounded-full transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                {disconnectingId === wpChannel.id ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="w-3.5 h-3.5" />
+                )}
+                Disconnect Channel
+              </button>
+            </div>
           </div>
-        </div>
-      )}
-
-      {/* OAuth Platforms */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col gap-4">
-        <h2 className="text-lg font-bold text-slate-900">Social OAuth Channels</h2>
-        <p className="text-sm text-slate-500">
-          Connect your social profiles & channels for automated content distribution.
-        </p>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
-          {/* LinkedIn */}
-          <div className="p-4 border border-slate-200 rounded-xl flex items-center justify-between shadow-xs bg-white">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                <Linkedin className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-slate-900">LinkedIn</p>
-                <p className="text-xs text-slate-500">
-                  {linkedInChannels.length > 0 ? `${linkedInChannels.length} connected` : "Not connected"}
+        ) : (
+          /* State B: Connect / Update WordPress Form */
+          <div className="flex flex-col gap-5">
+            {/* Guide Info Box */}
+            <div className="bg-blue-50/60 border border-blue-200/70 rounded-2xl p-4 text-xs text-blue-900 flex items-start gap-3">
+              <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+              <div className="leading-relaxed">
+                <p className="font-semibold text-blue-950">How to get an Application Password:</p>
+                <p className="mt-1 text-blue-800">
+                  In your WordPress Admin Dashboard, go to <strong>Users → Profile</strong>, scroll
+                  down to <strong>Application Passwords</strong>, enter a name (e.g.{" "}
+                  <em>Surge Platform</em>), click <strong>Add New Application Password</strong>, and
+                  paste the key below.
                 </p>
               </div>
             </div>
-            <Button
-              onClick={() => handleConnectOAuth("linkedin")}
-              variant={linkedInChannels.length > 0 ? "outline" : "default"}
-              className="text-xs h-9 px-3"
-            >
-              {linkedInChannels.length > 0 ? "Connected" : "Connect"}
-            </Button>
-          </div>
 
-          {/* Facebook */}
-          <div className="p-4 border border-slate-200 rounded-xl flex items-center justify-between shadow-xs bg-white">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                <Facebook className="w-5 h-5 text-blue-700" />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Site URL */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-slate-700">
+                  WordPress Site URL <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="url"
+                  value={siteUrl}
+                  onChange={(e) => {
+                    setSiteUrl(e.target.value);
+                    setErrorMsg("");
+                  }}
+                  placeholder="https://myblog.com"
+                  className="h-11 rounded-xl border border-slate-200 bg-slate-50/50 px-4 text-sm text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5060F0]/20 focus:border-[#5060F0]"
+                />
               </div>
-              <div>
-                <p className="text-sm font-bold text-slate-900">Facebook Page</p>
-                <p className="text-xs text-slate-500">
-                  {facebookChannels.length > 0 ? `${facebookChannels.length} connected` : "Not connected"}
-                </p>
+
+              {/* Username */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-slate-700">
+                  WordPress Username / Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => {
+                    setUsername(e.target.value);
+                    setErrorMsg("");
+                  }}
+                  placeholder="admin"
+                  className="h-11 rounded-xl border border-slate-200 bg-slate-50/50 px-4 text-sm text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5060F0]/20 focus:border-[#5060F0]"
+                />
+              </div>
+
+              {/* Application Password */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-slate-700">
+                  Application Password <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  value={applicationPassword}
+                  onChange={(e) => {
+                    setApplicationPassword(e.target.value);
+                    setErrorMsg("");
+                  }}
+                  placeholder="•••• •••• •••• ••••"
+                  className="h-11 rounded-xl border border-slate-200 bg-slate-50/50 px-4 text-sm text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5060F0]/20 focus:border-[#5060F0]"
+                />
               </div>
             </div>
-            <Button
-              onClick={() => handleConnectOAuth("facebook")}
-              variant={facebookChannels.length > 0 ? "outline" : "default"}
-              className="text-xs h-9 px-3"
-            >
-              {facebookChannels.length > 0 ? "Connected" : "Connect"}
-            </Button>
-          </div>
 
-          {/* Twitter / X */}
-          <div className="p-4 border border-slate-200 rounded-xl flex items-center justify-between shadow-xs bg-white">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
-                <Twitter className="w-5 h-5 text-slate-900" />
+            {/* Validation Preview if Tested */}
+            {validationResult && (
+              <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-800 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>
+                    Verified: <strong>{validationResult.siteName}</strong> (Author:{" "}
+                    {validationResult.user.name}) · Can Publish:{" "}
+                    {validationResult.canPublish ? "Yes" : "No"}
+                  </span>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-bold text-slate-900">Twitter / X</p>
-                <p className="text-xs text-slate-500">Not connected</p>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-between pt-2 flex-wrap gap-3">
+              {isEditing && wpChannel ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditing(false);
+                    setErrorMsg("");
+                  }}
+                  className="text-xs font-semibold text-slate-600 hover:text-slate-900 cursor-pointer"
+                >
+                  Cancel Edit
+                </button>
+              ) : (
+                <div />
+              )}
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleTestConnection}
+                  disabled={testing || !siteUrl || !username || !applicationPassword}
+                  className="border border-slate-200 hover:bg-slate-50 disabled:opacity-50 text-slate-700 font-semibold text-xs px-5 py-2.5 rounded-full transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  {testing && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  Test Connection
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleConnect}
+                  disabled={connecting || !siteUrl || !username || !applicationPassword}
+                  className="bg-[#4F62E8] hover:bg-[#4353D3] disabled:opacity-50 text-white font-semibold text-xs sm:text-sm px-6 py-2.5 rounded-full shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  {connecting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  {isEditing ? "Save & Reconnect" : "Connect WordPress"}
+                </button>
               </div>
             </div>
-            <Button
-              onClick={() => handleConnectOAuth("linkedin")}
-              variant="outline"
-              className="text-xs h-9 px-3"
-            >
-              Connect
-            </Button>
           </div>
-
-          {/* Instagram */}
-          <div className="p-4 border border-slate-200 rounded-xl flex items-center justify-between shadow-xs bg-white">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-pink-50 border border-pink-100 flex items-center justify-center shrink-0">
-                <Instagram className="w-5 h-5 text-pink-600" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-slate-900">Instagram</p>
-                <p className="text-xs text-slate-500">Not connected</p>
-              </div>
-            </div>
-            <Button
-              onClick={() => handleConnectOAuth("facebook")}
-              variant="outline"
-              className="text-xs h-9 px-3"
-            >
-              Connect
-            </Button>
-          </div>
-
-          {/* Bluesky / Threads */}
-          <div className="p-4 border border-slate-200 rounded-xl flex items-center justify-between shadow-xs bg-white">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center shrink-0">
-                <Globe className="w-5 h-5 text-sky-600" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-slate-900">Bluesky / Threads</p>
-                <p className="text-xs text-slate-500">Not connected</p>
-              </div>
-            </div>
-            <Button
-              onClick={() => handleConnectOAuth("linkedin")}
-              variant="outline"
-              className="text-xs h-9 px-3"
-            >
-              Connect
-            </Button>
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* Multi-CMS & Blog Integration */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col gap-6">
+      {/* ── 2. UPCOMING INTEGRATIONS (ROADMAP) ── */}
+      <div className="flex flex-col gap-4 mt-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-900">CMS & Blog Publishing Platform</h2>
-          <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
-            REST API & Webhooks
+          <div>
+            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">
+              Upcoming Integrations
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Additional CMS and social platforms currently in development.
+            </p>
+          </div>
+          <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 uppercase">
+            Coming Soon
           </span>
         </div>
 
-        {/* CMS Selector Tabs */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 p-1.5 rounded-xl bg-slate-100 border border-slate-200">
-          {[
-            { id: "WORDPRESS", label: "WordPress" },
-            { id: "WEBFLOW", label: "Webflow" },
-            { id: "GHOST", label: "Ghost" },
-            { id: "MEDIUM", label: "Medium" },
-            { id: "CUSTOM", label: "Custom Webhook" },
-          ].map((cms) => (
-            <button
-              key={cms.id}
-              type="button"
-              onClick={() => setSelectedCms(cms.id as any)}
-              className={cn(
-                "text-xs font-semibold py-2 px-3 rounded-lg transition-all text-center",
-                selectedCms === cms.id
-                  ? "bg-white text-indigo-700 shadow-sm font-bold border border-slate-200"
-                  : "text-slate-600 hover:text-slate-900"
-              )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {UPCOMING_PLATFORMS.map((platform) => (
+            <div
+              key={platform.id}
+              className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between gap-3 opacity-80 hover:opacity-100 transition-opacity"
             >
-              {cms.label}
-            </button>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={cn(
+                      "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 shadow-2xs",
+                      platform.iconBg,
+                      platform.iconColor
+                    )}
+                  >
+                    <Globe className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900">{platform.name}</h4>
+                    <span className="text-[10px] font-medium text-slate-500">
+                      {platform.category} Integration
+                    </span>
+                  </div>
+                </div>
+
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+                  Soon
+                </span>
+              </div>
+
+              <p className="text-xs text-slate-500 leading-relaxed">{platform.description}</p>
+
+              <button
+                disabled
+                className="w-full text-center py-2 text-xs font-semibold text-slate-400 bg-slate-50 rounded-xl border border-slate-200/60 cursor-not-allowed"
+              >
+                In Development
+              </button>
+            </div>
           ))}
-        </div>
-
-        {/* Dynamic Inputs based on selected CMS */}
-        <div className="flex flex-col gap-4">
-          {selectedCms === "WORDPRESS" && (
-            <>
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-sm font-medium text-slate-700">Site URL</Label>
-                <Input
-                  value={cmsUrl}
-                  onChange={(e) => setCmsUrl(e.target.value)}
-                  placeholder="https://blog.example.com"
-                  className="h-11 rounded-xl border-slate-200 text-base"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-sm font-medium text-slate-700">Application Password</Label>
-                <Input
-                  type="password"
-                  value={cmsApiKey}
-                  onChange={(e) => setCmsApiKey(e.target.value)}
-                  placeholder="•••• •••• •••• ••••"
-                  className="h-11 rounded-xl border-slate-200 text-base"
-                />
-              </div>
-            </>
-          )}
-
-          {selectedCms === "WEBFLOW" && (
-            <>
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-sm font-medium text-slate-700">Webflow Site URL / Collection ID</Label>
-                <Input
-                  value={cmsUrl}
-                  onChange={(e) => setCmsUrl(e.target.value)}
-                  placeholder="https://my-webflow-site.webflow.io"
-                  className="h-11 rounded-xl border-slate-200 text-base"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-sm font-medium text-slate-700">Webflow API Token</Label>
-                <Input
-                  type="password"
-                  value={cmsApiKey}
-                  onChange={(e) => setCmsApiKey(e.target.value)}
-                  placeholder="Bearer token from Webflow Admin"
-                  className="h-11 rounded-xl border-slate-200 text-base"
-                />
-              </div>
-            </>
-          )}
-
-          {selectedCms === "GHOST" && (
-            <>
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-sm font-medium text-slate-700">Ghost Blog URL</Label>
-                <Input
-                  value={cmsUrl}
-                  onChange={(e) => setCmsUrl(e.target.value)}
-                  placeholder="https://myghostblog.com"
-                  className="h-11 rounded-xl border-slate-200 text-base"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-sm font-medium text-slate-700">Ghost Admin API Key</Label>
-                <Input
-                  type="password"
-                  value={cmsApiKey}
-                  onChange={(e) => setCmsApiKey(e.target.value)}
-                  placeholder="Admin API key string"
-                  className="h-11 rounded-xl border-slate-200 text-base"
-                />
-              </div>
-            </>
-          )}
-
-          {selectedCms === "MEDIUM" && (
-            <>
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-sm font-medium text-slate-700">Medium Username / Publication</Label>
-                <Input
-                  value={cmsUrl}
-                  onChange={(e) => setCmsUrl(e.target.value)}
-                  placeholder="@username or Publication Name"
-                  className="h-11 rounded-xl border-slate-200 text-base"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-sm font-medium text-slate-700">Medium Integration Token</Label>
-                <Input
-                  type="password"
-                  value={cmsApiKey}
-                  onChange={(e) => setCmsApiKey(e.target.value)}
-                  placeholder="Integration token from Medium Settings"
-                  className="h-11 rounded-xl border-slate-200 text-base"
-                />
-              </div>
-            </>
-          )}
-
-          {selectedCms === "CUSTOM" && (
-            <>
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-sm font-medium text-slate-700">Webhook Endpoint URL</Label>
-                <Input
-                  value={cmsUrl}
-                  onChange={(e) => setCmsUrl(e.target.value)}
-                  placeholder="https://api.mywebsite.com/v1/posts/receive"
-                  className="h-11 rounded-xl border-slate-200 text-base"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-sm font-medium text-slate-700">Secret Token / Bearer Key (Optional)</Label>
-                <Input
-                  type="password"
-                  value={cmsApiKey}
-                  onChange={(e) => setCmsApiKey(e.target.value)}
-                  placeholder="Optional authorization secret"
-                  className="h-11 rounded-xl border-slate-200 text-base"
-                />
-              </div>
-            </>
-          )}
-
-          <div className="flex justify-end pt-2">
-            <Button
-              onClick={handleConnectCms}
-              disabled={connecting}
-              className="h-10 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-sm flex items-center gap-1.5"
-            >
-              <Plus className="w-4 h-4" />
-              {connecting ? "Connecting..." : `Connect ${selectedCms === "CUSTOM" ? "Webhook" : selectedCms.charAt(0) + selectedCms.slice(1).toLowerCase()}`}
-            </Button>
-          </div>
         </div>
       </div>
     </div>
@@ -441,3 +674,4 @@ export function SettingsPublishing() {
 }
 
 export default SettingsPublishing;
+

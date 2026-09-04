@@ -136,9 +136,17 @@ export class PublishingChannelsService {
       }
     }
 
-    const encryptedCredentials = this.encryptionService.encrypt(
-      dto.credentials,
-    );
+    const credsWithMeta = {
+      ...(dto.credentials || {}),
+      channelName:
+        dto.channelName ||
+        (dto.credentials?.channelName as string) ||
+        (dto.credentials?.siteName as string) ||
+        (dto.credentials?.siteUrl as string) ||
+        dto.platform,
+    };
+
+    const encryptedCredentials = this.encryptionService.encrypt(credsWithMeta);
 
     const channel = await this.prisma.publishingChannel.create({
       data: {
@@ -271,15 +279,23 @@ export class PublishingChannelsService {
 
   private sanitizeChannel(channel: PublishingChannel) {
     let credentialsSummary: Record<string, unknown> = { isConfigured: true };
+    let channelName = channel.platform;
     try {
       const decrypted = this.encryptionService.decrypt(
         channel.encryptedCredentials,
       );
       if (decrypted && typeof decrypted === "object") {
         const dec = decrypted as Record<string, unknown>;
+        channelName =
+          (dec.channelName as string) ||
+          (dec.siteName as string) ||
+          (dec.siteUrl as string) ||
+          (dec.username as string) ||
+          channel.platform;
         credentialsSummary = {
           isConfigured: true,
           platform: channel.platform,
+          channelName,
           authorUrl: dec.authorUrl || dec.wpUrl || dec.siteUrl || undefined,
           siteUrl: dec.siteUrl || dec.apiUrl || undefined,
           siteName: dec.siteName || undefined,
@@ -303,6 +319,7 @@ export class PublishingChannelsService {
 
     return {
       ...safeChannel,
+      channelName,
       credentials: credentialsSummary,
     };
   }

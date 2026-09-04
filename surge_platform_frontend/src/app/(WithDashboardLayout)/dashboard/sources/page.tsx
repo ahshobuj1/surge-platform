@@ -1,111 +1,127 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Trash2,
-  RefreshCw,
-  CheckCircle2,
-  Globe,
-  Plus,
-  AlertCircle,
-  Clock,
-  Rss,
-  Sparkles,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import Link from "next/link";
+import { Trash2, AlertCircle, Loader2 } from "lucide-react";
 import { DashboardHeader } from "../DashboardHeader";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/lib/context/WorkspaceContext";
-import { api } from "@/lib/api";
+import { useAuth } from "@/lib/context/AuthContext";
+import { api, ApiError } from "@/lib/api";
 import { RssFeed } from "@/lib/types";
 
-const FREQUENCY_OPTIONS = [
-  { value: "1", label: "Every 1 Hour" },
-  { value: "2", label: "Every 2 Hours" },
-  { value: "6", label: "Every 6 Hours" },
-  { value: "12", label: "Every 12 Hours" },
-  { value: "24", label: "Once Daily (24 Hours)" },
-];
+interface SubscriptionDetails {
+  tier: "starter" | "pro" | "business";
+  tierName: string;
+  status: string;
+  limits: {
+    maxRssSources: number;
+    maxChannels: number;
+    monthlyPosts: number;
+  };
+  usage: {
+    rssFeeds: number;
+    channels: number;
+    postsCount: number;
+  };
+}
+
+function formatLastChecked(dateString?: string): string {
+  if (!dateString) return "Last checked just now";
+  const diffMs = Date.now() - new Date(dateString).getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return "Last checked just now";
+  if (diffMins < 60) return `Last checked ${diffMins} min${diffMins > 1 ? "s" : ""} ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `Last checked ${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+  return `Last checked on ${new Date(dateString).toLocaleDateString()}`;
+}
 
 function SourcesPage() {
   const { activeWorkspace } = useWorkspace();
+  const { company } = useAuth();
   const [feeds, setFeeds] = useState<RssFeed[]>([]);
   const [loading, setLoading] = useState(true);
   const [newUrl, setNewUrl] = useState("");
-  const [newName, setNewName] = useState("");
   const [error, setError] = useState("");
   const [adding, setAdding] = useState(false);
-  const [scrapingId, setScrapingId] = useState<string | null>(null);
+  const [subDetails, setSubDetails] = useState<SubscriptionDetails | null>(null);
 
-  // Auto-Fetch Frequency State
-  const [fetchFrequencyHours, setFetchFrequencyHours] = useState<string>("1");
-  const [savingSchedule, setSavingSchedule] = useState(false);
-  const [scheduleSaved, setScheduleSaved] = useState(false);
-  const [manualScrapeMsg, setManualScrapeMsg] = useState("");
-
-  const fetchFeeds = async () => {
-    if (!activeWorkspace?.id) return;
-    setLoading(true);
+  const reloadSubscription = async () => {
     try {
-      const res = await api.get<RssFeed[]>(`/workspaces/${activeWorkspace.id}/rss-sources`);
-      const list = Array.isArray(res) ? res : [];
-      setFeeds(list);
-    } catch (err: any) {
-      console.error("Failed to fetch RSS feeds:", err);
-      setFeeds([]);
-    } finally {
-      setLoading(false);
+      const res = await api.get<SubscriptionDetails>("/companies/billing/subscription");
+      if (res) {
+        setSubDetails(res);
+      }
+    } catch {
+      // Fallback to company context or defaults
     }
   };
 
   useEffect(() => {
-    fetchFeeds();
-    const currentConfig = (activeWorkspace as any)?.queue_config || (activeWorkspace as any)?.queueConfig;
-    if (currentConfig?.fetchFrequencyHours) {
-      setFetchFrequencyHours(String(currentConfig.fetchFrequencyHours));
-    }
-  }, [activeWorkspace]);
+    let cancelled = false;
 
-  const handleFrequencyChange = async (val: string) => {
-    setFetchFrequencyHours(val);
-    if (!activeWorkspace?.id) return;
-    setSavingSchedule(true);
-    setError("");
-    setScheduleSaved(false);
-    try {
-      const hoursNum = parseInt(val, 10) || 1;
-      await api.patch(`/workspaces/${activeWorkspace.id}/queue-config`, {
-        fetchFrequencyHours: hoursNum,
-      });
-      setScheduleSaved(true);
-      setTimeout(() => setScheduleSaved(false), 3000);
-    } catch (err: any) {
-      setError(err.message || "Failed to save schedule settings.");
-    } finally {
-      setSavingSchedule(false);
+    async function loadInitialData() {
+      if (!activeWorkspace?.id) {
+        if (!cancelled) setLoading(false);
+        return;
+      }
+
+      try {
+        const [feedsRes, subRes] = await Promise.allSettled([
+          api.get<RssFeed[]>(`/workspaces/${activeWorkspace.id}/rss-sources`),
+          api.get<SubscriptionDetails>("/companies/billing/subscription"),
+        ]);
+
+        if (!cancelled) {
+          if (feedsRes.status === "fulfilled" && Array.isArray(feedsRes.value)) {
+            setFeeds(feedsRes.value);
+          } else {
+            setFeeds([]);
+          }
+
+          if (subRes.status === "fulfilled" && subRes.value) {
+            setSubDetails(subRes.value);
+          }
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
     }
-  };
+
+    void loadInitialData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeWorkspace?.id]);
+
+  // Subscription Limits
+  const tierName =
+    subDetails?.tierName ||
+    (company?.subscriptionTier === "business"
+      ? "Business"
+      : company?.subscriptionTier === "starter"
+      ? "Starter"
+      : "Pro");
+
+  const maxFeeds =
+    subDetails?.limits?.maxRssSources ||
+    (company?.subscriptionTier === "business"
+      ? 50
+      : company?.subscriptionTier === "starter"
+      ? 5
+      : 20);
+
+  const isAtLimit = feeds.length >= maxFeeds;
+  const usedPercent = Math.min(100, Math.round((feeds.length / (maxFeeds || 1)) * 100));
+  const frequencyHours = activeWorkspace?.queue_config?.fetchFrequencyHours || 4;
 
   const handleAdd = async () => {
     let targetUrl = newUrl.trim();
-    let targetName = newName.trim();
-
-    if (!targetUrl && (targetName.startsWith("http://") || targetName.startsWith("https://") || targetName.includes("."))) {
-      targetUrl = targetName;
-      targetName = "";
-    }
-
-    if (!targetUrl) {
-      setError("Please enter a valid RSS feed URL.");
-      return;
-    }
+    if (!targetUrl) return;
 
     if (!/^https?:\/\//i.test(targetUrl)) {
       targetUrl = `https://${targetUrl}`;
@@ -115,6 +131,11 @@ function SourcesPage() {
       new URL(targetUrl);
     } catch {
       setError("Please enter a valid RSS feed URL (e.g. https://techcrunch.com/feed/).");
+      return;
+    }
+
+    if (isAtLimit) {
+      setError(`You have reached the maximum allowed RSS feeds (${maxFeeds}) for your ${tierName} plan. Please upgrade to add more.`);
       return;
     }
 
@@ -128,15 +149,18 @@ function SourcesPage() {
     try {
       const created = await api.post<RssFeed>(`/workspaces/${activeWorkspace.id}/rss-sources`, {
         feedUrl: targetUrl,
-        name: targetName || targetUrl,
       });
-      setFeeds((prev) => [...prev, created]);
+      setFeeds((prev) => [created, ...prev]);
       setNewUrl("");
-      setNewName("");
-      setManualScrapeMsg("RSS feed added successfully!");
-      setTimeout(() => setManualScrapeMsg(""), 3000);
-    } catch (err: any) {
-      setError(err.message || "Failed to add feed. You may have reached your subscription limit.");
+      void reloadSubscription();
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Failed to add feed. Please verify the URL and try again.");
+      }
     } finally {
       setAdding(false);
     }
@@ -147,213 +171,157 @@ function SourcesPage() {
     try {
       await api.delete(`/workspaces/${activeWorkspace.id}/rss-sources/${id}?force=true`);
       setFeeds((prev) => prev.filter((f) => f.id !== id));
-    } catch (err: any) {
-      setError(err.message || "Failed to delete feed.");
+      void reloadSubscription();
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Failed to delete feed.");
+      }
     }
   };
-
-  const handleScrape = async (id: string) => {
-    if (!activeWorkspace?.id) return;
-    setScrapingId(id);
-    setManualScrapeMsg("");
-    try {
-      await api.post(`/workspaces/${activeWorkspace.id}/rss-sources/${id}/scrape`);
-      setManualScrapeMsg("Manual feed sync triggered successfully!");
-      setTimeout(() => setManualScrapeMsg(""), 3000);
-      await fetchFeeds();
-    } catch (err: any) {
-      setError(err.message || "Failed to trigger feed scrape.");
-    } finally {
-      setScrapingId(null);
-    }
-  };
-
-  const activeLabel =
-    FREQUENCY_OPTIONS.find((o) => o.value === fetchFrequencyHours)?.label ||
-    `Every ${fetchFrequencyHours} Hours`;
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-50/50 min-h-screen overflow-auto">
+    <div className="flex-1 flex flex-col min-h-screen overflow-auto font-sans">
       <DashboardHeader
-        title="RSS Ingestion Sources"
-        subtitle="Manage content sources and configure automated background fetch schedules"
+        title="Sources"
+        subtitle="Add and manage RSS feeds used for content collection."
       />
 
-      <div className="px-8 pb-12 pt-4 flex flex-col gap-6 w-full">
-        {manualScrapeMsg && (
-          <div className="p-3.5 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-800 text-sm font-semibold flex items-center gap-3 shadow-xs">
-            <Sparkles className="w-4 h-4 text-indigo-600 shrink-0" />
-            <span>{manualScrapeMsg}</span>
-          </div>
-        )}
-
-        {/* ── UNIFIED MAIN CARD ── */}
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6 sm:p-8 flex flex-col gap-8 w-full">
-          
-          {/* Header & Auto-Fetch Frequency Control */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
-            <div className="flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
-                <Rss className="w-5.5 h-5.5 text-indigo-600" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">Content Sources & Auto-Sync</h2>
-                <p className="text-xs text-slate-500">
-                  {feeds.length} feed source{feeds.length !== 1 ? "s" : ""} connected in "{activeWorkspace?.name || "Workspace"}"
-                </p>
-              </div>
+      <div className="px-6 sm:px-8 pb-12 w-full flex flex-col gap-6">
+        {/* Main Clean Card */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 md:p-10 shadow-sm border border-white/80 flex flex-col gap-6 w-full">
+          {/* Card Top Title & Limit Bar */}
+          <div className="flex flex-col gap-1">
+            <h2 className="text-xl font-bold text-slate-900 tracking-tight">RSS Feeds</h2>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-xs sm:text-sm font-medium text-slate-500">
+                {feeds.length} / {maxFeeds} feeds used
+              </span>
+              <span className="bg-[#EEF1FE] text-[#5E6DF6] text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                {tierName}
+              </span>
             </div>
-
-            {/* Inline Auto-Fetch Frequency Selector */}
-            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/80 p-2 rounded-2xl">
-              <div className="flex items-center gap-2 pl-2">
-                <Clock className="w-4 h-4 text-indigo-600 shrink-0" />
-                <span className="text-xs font-semibold text-slate-700 whitespace-nowrap">Auto-Sync:</span>
-              </div>
-              <Select value={fetchFrequencyHours} onValueChange={(val) => handleFrequencyChange(val || "1")}>
-                <SelectTrigger className="h-9 px-3 min-w-[170px] rounded-xl border-slate-200 bg-white text-xs font-semibold text-slate-900 shadow-xs focus:ring-2 focus:ring-indigo-300">
-                  <span className="truncate">{activeLabel}</span>
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border border-slate-200 shadow-lg">
-                  {FREQUENCY_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value} className="text-xs font-medium">
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {scheduleSaved && (
-                <span className="text-xs text-emerald-600 font-semibold pr-2 flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Saved
-                </span>
-              )}
+            <div className="w-44 sm:w-48 h-1.5 bg-slate-100 rounded-full overflow-hidden mt-1.5">
+              <div
+                className="bg-[#5E6DF6] h-full rounded-full transition-all duration-500"
+                style={{ width: `${usedPercent}%` }}
+              />
             </div>
           </div>
 
           {/* Feeds List */}
-          <div className="flex flex-col gap-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Connected RSS Feeds
-            </h3>
-
+          <div className="flex flex-col divide-y divide-slate-100 my-1">
             {loading ? (
-              <div className="p-8 text-center text-slate-400 text-sm font-medium border border-slate-100 rounded-2xl bg-slate-50/50">
+              <div className="py-8 text-center text-xs text-slate-400 font-medium">
                 Loading RSS feeds...
               </div>
             ) : feeds.length === 0 ? (
-              <div className="p-8 text-center border border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-2 bg-slate-50/40">
-                <Rss className="w-8 h-8 text-slate-300" />
-                <p className="text-sm font-semibold text-slate-700">No RSS feeds added yet</p>
-                <p className="text-xs text-slate-400 max-w-sm">
-                  Add your website or blog RSS feed below to start ingesting posts automatically.
-                </p>
+              <div className="py-8 text-center text-xs text-slate-400 font-medium">
+                No RSS feeds connected yet. Add your first feed below.
               </div>
             ) : (
-              <div className="flex flex-col divide-y divide-slate-100 border border-slate-200/80 rounded-2xl overflow-hidden bg-white">
-                {feeds.map((feed) => (
-                  <div key={feed.id} className="flex items-center justify-between p-4 hover:bg-slate-50/60 transition-colors gap-4">
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
-                        <Globe className="w-4 h-4 text-indigo-600" />
-                      </div>
+              feeds.map((feed) => {
+                const isError = feed.status === "error";
+                const displayUrl = feed.feedUrl.replace(/^https?:\/\//i, "");
+
+                return (
+                  <div
+                    key={feed.id}
+                    className="flex items-center justify-between py-4 first:pt-2 last:pb-2 gap-4"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span
+                        className={cn(
+                          "w-2 h-2 rounded-full shrink-0",
+                          isError ? "bg-red-500" : "bg-emerald-500"
+                        )}
+                      />
                       <div className="flex flex-col min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-bold text-slate-900 truncate">
-                            {(feed as any).name || feed.feedUrl}
+                        <p className="text-sm font-semibold text-slate-900 truncate">
+                          {displayUrl}
+                        </p>
+                        {isError ? (
+                          <p className="text-xs text-red-500 mt-0.5">
+                            Invalid feed URL · Unable to reach
                           </p>
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="Active Feed" />
-                        </div>
-                        <p className="text-xs text-slate-400 font-mono truncate">{feed.feedUrl}</p>
+                        ) : (
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            Checked every {frequencyHours} {frequencyHours === 1 ? "hour" : "hours"} ·{" "}
+                            {formatLastChecked(feed.lastFetchedAt || feed.createdAt)}
+                          </p>
+                        )}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleScrape(feed.id)}
-                        disabled={scrapingId === feed.id}
-                        className="text-xs h-8 px-3 rounded-xl border-slate-200 text-slate-700 hover:bg-white shadow-2xs flex items-center gap-1.5"
-                      >
-                        <RefreshCw className={cn("w-3.5 h-3.5 text-indigo-600", scrapingId === feed.id && "animate-spin")} />
-                        {scrapingId === feed.id ? "Syncing..." : "Sync Now"}
-                      </Button>
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(feed.id)}
-                        className="text-xs h-8 w-8 p-0 rounded-xl text-red-600 hover:bg-red-50"
-                        title="Remove Feed"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
+                    <button
+                      onClick={() => handleDelete(feed.id)}
+                      title="Remove Feed"
+                      className="text-red-400 hover:text-red-600 transition-colors p-1 shrink-0 cursor-pointer"
+                    >
+                      <Trash2 className="w-5 h-5 stroke-[1.75]" />
+                    </button>
                   </div>
-                ))}
-              </div>
+                );
+              })
             )}
           </div>
 
-          {/* Add New RSS Feed Form */}
+          {/* Add New RSS Feed Input Bar */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              handleAdd();
+              void handleAdd();
             }}
-            className="flex flex-col gap-4 pt-6 border-t border-slate-100"
+            className="mt-2"
           >
-            <div className="flex flex-col gap-1">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <Plus className="w-4 h-4 text-indigo-600" />
-                Add New RSS Feed
-              </h3>
-              <p className="text-xs text-slate-500">
-                Paste any website blog feed URL (e.g. <code>https://techcrunch.com/feed/</code>)
-              </p>
+            <div className="rounded-full bg-slate-100/70 border border-slate-200/60 p-1.5 pl-5 flex items-center justify-between gap-3 shadow-2xs">
+              <input
+                type="text"
+                value={newUrl}
+                onChange={(e) => {
+                  setNewUrl(e.target.value);
+                  setError("");
+                }}
+                placeholder="https://example.com/feed"
+                disabled={adding || isAtLimit}
+                className="bg-transparent border-none outline-none text-sm text-slate-800 placeholder:text-slate-400 flex-1 disabled:opacity-50"
+              />
+              <button
+                type="submit"
+                disabled={adding || isAtLimit || !newUrl.trim()}
+                className="bg-[#4F62E8] hover:bg-[#4353D3] disabled:opacity-50 text-white font-semibold text-xs sm:text-sm px-6 h-9 rounded-full shadow-xs transition-colors shrink-0 cursor-pointer flex items-center gap-1.5"
+              >
+                {adding && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                Add
+              </button>
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-              <div className="sm:col-span-6 flex flex-col gap-1">
-                <Input
-                  value={newUrl}
-                  onChange={(e) => {
-                    setNewUrl(e.target.value);
-                    setError("");
-                  }}
-                  placeholder="https://example.com/feed/"
-                  className="h-11 rounded-2xl border-slate-200 bg-white text-sm focus-visible:ring-2 focus-visible:ring-indigo-300"
-                />
-              </div>
-
-              <div className="sm:col-span-4 flex flex-col gap-1">
-                <Input
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Feed Display Name (Optional)"
-                  className="h-11 rounded-2xl border-slate-200 bg-white text-sm focus-visible:ring-2 focus-visible:ring-indigo-300"
-                />
-              </div>
-
-              <div className="sm:col-span-2">
-                <Button
-                  type="submit"
-                  disabled={adding}
-                  className="w-full h-11 px-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-md shadow-indigo-600/20"
-                >
-                  {adding ? "Adding..." : "Add Feed"}
-                </Button>
-              </div>
-            </div>
-
-            {error && (
-              <p className="text-xs text-red-600 font-semibold flex items-center gap-1.5 pt-1">
-                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
-                {error}
-              </p>
-            )}
           </form>
 
+          {/* Subscription Limit Warning Notice */}
+          {isAtLimit && (
+            <div className="flex items-center justify-between text-xs text-slate-600 bg-slate-50 border border-slate-200/60 rounded-2xl p-3.5 px-4">
+              <span>
+                You have reached your {tierName} plan limit of {maxFeeds} feeds.
+              </span>
+              <Link
+                href="/dashboard/settings"
+                className="text-[#5E6DF6] font-semibold hover:underline shrink-0 ml-2"
+              >
+                Upgrade Plan
+              </Link>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {error && (
+            <div className="p-3.5 text-xs font-medium text-red-700 bg-red-50 rounded-2xl border border-red-200 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+              <span>{error}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

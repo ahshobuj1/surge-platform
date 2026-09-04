@@ -22,16 +22,16 @@ interface SettingsTabBarProps {
 
 export function SettingsTabBar({ activeTab, onChange }: SettingsTabBarProps) {
   return (
-    <div className="flex items-center gap-1 bg-white rounded-xl border border-slate-100 shadow-sm p-1 w-fit">
+    <div className="flex items-center gap-1.5 bg-white/40 border border-white/60 backdrop-blur-xs rounded-xl p-1.5 w-fit shadow-xs">
       {TABS.map((tab) => (
         <button
           key={tab.id}
           onClick={() => onChange(tab.id)}
           className={cn(
-            "px-4 py-1.5 rounded-lg text-base font-medium transition-all",
+            "px-5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all",
             activeTab === tab.id
-              ? "bg-indigo-500 text-white shadow-sm"
-              : "text-muted-foreground hover:text-foreground hover:bg-slate-50"
+              ? "bg-white text-[#5060F0] font-semibold shadow-xs"
+              : "text-slate-600 hover:text-slate-900 hover:bg-white/30"
           )}
         >
           {tab.label}

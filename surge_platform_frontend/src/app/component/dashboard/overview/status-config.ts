@@ -1,7 +1,7 @@
 import { ArticleStatus } from "./types";
 
 export const STATUS_BADGE: Record<ArticleStatus, string> = {
-  Published: "bg-emerald-100 text-emerald-600",
-  Failed:    "bg-red-100 text-red-500",
-  Retried:   "bg-amber-100 text-amber-600",
+  Published: "bg-[#E8F8EE] text-[#16A34A]",
+  Failed:    "bg-[#FEECEC] text-[#EF4444]",
+  Retried:   "bg-[#FEF6E7] text-[#D97706]",
 };

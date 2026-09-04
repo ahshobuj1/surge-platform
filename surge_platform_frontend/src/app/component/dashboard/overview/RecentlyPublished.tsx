@@ -27,27 +27,27 @@ export function RecentlyPublished({ articles }: RecentlyPublishedProps) {
 
   return (
     <>
-      <div className="bg-white rounded-2xl shadow-sm border border-border p-6">
-        <h2 className="text-base font-bold text-foreground mb-5">
+      <div className="bg-white rounded-2xl shadow-xs border border-white/60 p-6 sm:p-7">
+        <h2 className="text-base font-bold text-slate-900 mb-5">
           Recently Published
         </h2>
 
         <Table>
           <TableHeader>
             <TableRow className="border-b-0 hover:bg-transparent">
-              <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider h-8 pl-2">
+              <TableHead className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider h-8 pl-0">
                 Title
               </TableHead>
-              <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider h-8 w-[90px]">
+              <TableHead className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider h-8 px-4 w-[100px]">
                 Time
               </TableHead>
-              <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider h-8 w-[110px]">
+              <TableHead className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider h-8 px-4 w-[120px]">
                 Source
               </TableHead>
-              <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider h-8 w-[120px]">
+              <TableHead className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider h-8 px-4 w-[110px]">
                 Status
               </TableHead>
-              <TableHead className="h-8 w-[56px]" />
+              <TableHead className="h-8 w-14 pr-0" />
             </TableRow>
           </TableHeader>
           <TableBody>

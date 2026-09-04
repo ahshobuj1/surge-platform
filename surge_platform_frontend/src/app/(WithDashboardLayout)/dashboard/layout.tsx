@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/context/AuthContext";
 import { api } from "@/lib/api";
 import { User } from "@/lib/types";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "./DashboardSidebar";
 
 export default function DashboardLayout({
@@ -66,9 +67,13 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen max-w-full flex dashboard-scale bg-slate-50/50">
-      <DashboardSidebar />
-      <main className="flex-1 flex flex-col">{children}</main>
-    </div>
+    <SidebarProvider defaultOpen={true}>
+      <div className="min-h-screen w-full flex font-sans bg-[#E2E8F8]">
+        <DashboardSidebar />
+        <SidebarInset className="bg-[#E2E8F8] flex-1 flex flex-col min-w-0">
+          {children}
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
 }

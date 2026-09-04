@@ -34,6 +34,7 @@ model User {
   password    String   @map("password")
   role        UserRole @default(customer)
   avatarKey   String?  @map("profile_image")
+  mailingAddress String? @map("mailing_address")
   isVerified  Boolean  @default(false) @map("is_verified")
   isOnboarded Boolean  @default(false) @map("is_onboarded")
   passwordChangedAt DateTime? @map("password_changed_at")
