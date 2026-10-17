@@ -6,7 +6,7 @@ COPY package.json bun.lock* ./
 RUN bun install
 
 COPY . .
-RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" bun run prisma generate
+RUN DATABASE_URL="postgresql://neondb_owner:npg_uRSoWT1cD3Ha@ep-cold-feather-b5p228i5-pooler.c-7.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require" bun run prisma generate
 RUN bun run build
 
 # Stage 2: Production runner
