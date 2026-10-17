@@ -1,0 +1,18 @@
+{
+  "default_branch": "main",
+  "branches": [
+    "ahshobuj",
+    "main",
+    "origin"
+  ],
+  "parent": {
+    "ahshobuj": "main",
+    "main": null,
+    "origin": "main"
+  },
+  "order": [
+    "main",
+    "ahshobuj",
+    "origin"
+  ]
+}
