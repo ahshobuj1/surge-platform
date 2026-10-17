@@ -6,7 +6,7 @@ COPY package.json bun.lock* ./
 RUN bun install
 
 COPY . .
-RUN bun run prisma generate
+RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" bun run prisma generate
 RUN bun run build
 
 # Stage 2: Production runner
