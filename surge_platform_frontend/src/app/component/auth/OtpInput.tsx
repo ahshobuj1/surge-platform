@@ -2,20 +2,23 @@
 
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { OtpInputProps } from "@/lib/types";
 
-type Props = {
-  length?: number;
-  onChange: (otp: string) => void;
-  disabled?: boolean;
-};
-
-export default function OtpInput({ length = 6, onChange, disabled = false }: Props) {
+export default function OtpInput({ length = 6, value = "", onChange, disabled = false }: OtpInputProps) {
   const [otp, setOtp] = useState<string[]>(Array(length).fill(""));
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
     inputRefs.current[0]?.focus();
   }, []);
+
+  useEffect(() => {
+    if (value) {
+      const chars = value.replace(/\D/g, "").slice(0, length).split("");
+      while (chars.length < length) chars.push("");
+      setOtp(chars);
+    }
+  }, [value, length]);
 
   const handleChange = (index: number, value: string) => {
     if (disabled) return;

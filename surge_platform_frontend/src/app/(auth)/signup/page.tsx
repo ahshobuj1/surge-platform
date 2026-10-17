@@ -39,8 +39,12 @@ export default function Signup() {
     setLoading(true);
     setErrorMsg("");
     try {
-      await signup(data.email, data.password, data.name);
-      router.push(`/verify-otp?email=${encodeURIComponent(data.email)}`);
+      const res = await signup(data.email, data.password, data.name);
+      const params = new URLSearchParams({ email: data.email });
+      if (res.otp) {
+        params.set("otp", res.otp);
+      }
+      router.push(`/verify-otp?${params.toString()}`);
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         // Map backend field errors to form inputs

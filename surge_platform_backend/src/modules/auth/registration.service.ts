@@ -59,6 +59,7 @@ export class RegistrationService {
     return {
       message: "User registered. Check your email for OTP.",
       otpFallback: true,
+      otp: token,
     };
   }
 
@@ -137,6 +138,7 @@ export class RegistrationService {
     return {
       message: "OTP resent. Check your email.",
       otpFallback: true,
+      otp: token,
     };
   }
 }

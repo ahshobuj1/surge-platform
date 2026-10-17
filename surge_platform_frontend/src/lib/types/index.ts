@@ -190,3 +190,23 @@ export interface PublishingChannel {
   refreshToken?: string;
   createdAt?: string;
 }
+
+export interface SignupResponseData {
+  message: string;
+  otpFallback?: boolean;
+  otp?: string;
+}
+
+export interface ResendOtpResponseData {
+  message: string;
+  otpFallback?: boolean;
+  otp?: string;
+}
+
+export interface OtpInputProps {
+  length?: number;
+  value?: string;
+  onChange: (otp: string) => void;
+  disabled?: boolean;
+}
+

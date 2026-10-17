@@ -7,6 +7,7 @@ import {
   extractOtpFromText,
 } from "./mailtrap-templates.util";
 import * as https from "https";
+import * as nodemailer from "nodemailer";
 
 @Injectable()
 export class MailtrapService {
@@ -30,6 +31,53 @@ export class MailtrapService {
       "Surge Platform";
     this.inboxId =
       this.configService.get<string>("MAILTRAP_INBOX_ID")?.trim() || "";
+  }
+
+  private async trySendViaSmtp(params: {
+    to: string;
+    subject: string;
+    html: string;
+    text?: string;
+  }): Promise<boolean | null> {
+    const host = this.configService.get<string>("MAIL_HOST")?.trim();
+    const user = this.configService.get<string>("MAIL_USER")?.trim();
+    const pass = this.configService.get<string>("MAIL_PASS")?.trim();
+
+    if (!host || !user || !pass) {
+      return null; // SMTP not configured, proceed to Mailtrap
+    }
+
+    try {
+      const port = Number(this.configService.get<string>("MAIL_PORT") || 465);
+      const secure =
+        this.configService.get<string>("MAIL_SECURE") === "true" || port === 465;
+      const from =
+        this.configService.get<string>("MAIL_FROM")?.trim() ||
+        this.fromEmail ||
+        user;
+
+      const transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure,
+        auth: { user, pass },
+      });
+
+      await transporter.sendMail({
+        from: `"${this.fromName}" <${from}>`,
+        to: params.to,
+        subject: params.subject,
+        html: params.html,
+        text: params.text,
+      });
+
+      this.logger.log(`Real email sent successfully via SMTP (${host}) to ${params.to}`);
+      return true;
+    } catch (smtpErr: unknown) {
+      const msg = smtpErr instanceof Error ? smtpErr.message : String(smtpErr);
+      this.logger.error(`SMTP delivery to ${params.to} failed: ${msg}. Trying Mailtrap fallback.`);
+      return false;
+    }
   }
 
   private async discoverSandboxInbox(): Promise<string | null> {
@@ -86,6 +134,11 @@ export class MailtrapService {
     text?: string;
   }): Promise<boolean> {
     this.refreshConfig();
+
+    const smtpSent = await this.trySendViaSmtp(params);
+    if (smtpSent === true) {
+      return true;
+    }
 
     const isDevelopment =
       this.configService.get<string>("NODE_ENV") === "development";

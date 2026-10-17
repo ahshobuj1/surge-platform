@@ -1,13 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { User, Company, LoginResponseData, VerifyEmailResponseData } from "../types";
+import { User, Company, LoginResponseData, VerifyEmailResponseData, SignupResponseData } from "../types";
 import { api, getStoredTokens, setStoredTokens, clearStoredTokens } from "../api";
-
-export interface SignupResponseData {
-  message: string;
-  otpFallback?: boolean;
-}
 
 interface AuthContextType {
   user: User | null;
