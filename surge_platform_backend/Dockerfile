@@ -14,8 +14,8 @@ RUN bun install
 # Copy project files
 COPY . .
 
-# Generate Prisma Client
-RUN bun run prisma generate
+# Generate Prisma Client (build-time types generation)
+RUN DATABASE_URL="postgresql://neondb_owner:npg_uRSoWT1cD3Ha@ep-cold-feather-b5p228i5-pooler.c-7.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require" bun run prisma generate
 
 # Build NestJS application
 RUN bun run build
