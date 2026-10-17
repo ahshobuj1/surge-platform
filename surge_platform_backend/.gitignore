@@ -10,7 +10,6 @@ Thumbs.db
 .fuse_hidden*
 .trash/
 
-.env
 # ==========================================
 # 2. Dependencies & Build Output
 # ==========================================
