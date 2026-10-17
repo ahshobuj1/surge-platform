@@ -22,4 +22,4 @@ COPY --from=builder /app/templates ./templates
 
 EXPOSE 3030
 
-CMD ["sh", "-c", "bun dist/src/main.js || bun dist/main.js"]
+CMD ["bun", "dist/src/main.js"]

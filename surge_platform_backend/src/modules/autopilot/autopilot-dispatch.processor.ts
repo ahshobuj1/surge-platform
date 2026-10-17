@@ -43,9 +43,16 @@ export class AutopilotDispatchProcessor
     @InjectQueue("FailedPostsQueue") private readonly failedPostsQueue: Queue,
   ) {
     super();
-    const redisUrl =
+    let redisUrl =
       this.config.get<string>("REDIS_URL") || "redis://127.0.0.1:6379";
-    this.redis = new Redis(redisUrl);
+    const urlMatch = redisUrl.match(/(redis|rediss):\/\/[^\s"']+/);
+    if (urlMatch) {
+      redisUrl = urlMatch[0];
+    }
+    this.redis = new Redis(redisUrl, {
+      tls: redisUrl.startsWith("rediss://") ? {} : undefined,
+      maxRetriesPerRequest: null,
+    });
   }
 
   async process(job: Job<AutopilotDispatchJobPayload>) {
