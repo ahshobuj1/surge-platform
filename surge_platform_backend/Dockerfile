@@ -50,5 +50,5 @@ COPY --from=builder /app/templates ./templates
 # Expose application port
 EXPOSE 3030
 
-# Start application with Bun
-CMD ["bun", "dist/main.js"]
+# Start application with Bun (and run pending database migrations)
+CMD ["sh", "-c", "bun run prisma migrate deploy && (bun dist/src/main.js || bun dist/main.js)"]
