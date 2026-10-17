@@ -40,11 +40,17 @@ import {ToneProfilesModule} from './modules/tone-profiles/tone-profiles.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const redisUrl = configService.get<string>('REDIS_URL');
+        let redisUrl = configService.get<string>('REDIS_URL');
         if (redisUrl) {
+          const urlMatch = redisUrl.match(/(redis|rediss):\/\/[^\s"']+/);
+          if (urlMatch) {
+            redisUrl = urlMatch[0];
+          }
           return {
             connection: {
               url: redisUrl,
+              tls: redisUrl.startsWith('rediss://') ? {} : undefined,
+              maxRetriesPerRequest: null,
             },
           };
         }

@@ -19,9 +19,16 @@ export class RssSchedulerService
     private config: ConfigService,
     private prisma: PrismaService,
   ) {
-    const redisUrl =
+    let redisUrl =
       this.config.get<string>("REDIS_URL") || "redis://127.0.0.1:6379";
-    this.redis = new Redis(redisUrl);
+    const urlMatch = redisUrl.match(/(redis|rediss):\/\/[^\s"']+/);
+    if (urlMatch) {
+      redisUrl = urlMatch[0];
+    }
+    this.redis = new Redis(redisUrl, {
+      tls: redisUrl.startsWith("rediss://") ? {} : undefined,
+      maxRetriesPerRequest: null,
+    });
     this.queue = new Queue("rss-fetch-queue", {
       connection: this.redis,
     });
