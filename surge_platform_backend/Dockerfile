@@ -6,10 +6,10 @@ FROM oven/bun:1-alpine AS builder
 WORKDIR /app
 
 # Copy package files
-COPY package.json bun.lock ./
+COPY package.json bun.lock* ./
 
 # Install all dependencies
-RUN bun install --frozen-lockfile
+RUN bun install
 
 # Copy project files
 COPY . .
@@ -31,10 +31,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Copy package files
-COPY package.json bun.lock ./
+COPY package.json bun.lock* ./
 
 # Install only production dependencies
-RUN bun install --production --frozen-lockfile
+RUN bun install --production
 
 # Copy Prisma engine and generated client
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
