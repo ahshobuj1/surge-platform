@@ -15,7 +15,8 @@ RUN bun install --frozen-lockfile
 COPY . .
 
 # Generate Prisma Client
-RUN bun run prisma generate
+# RUN bun run prisma generate
+RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" bun run prisma generate
 
 # Build NestJS application
 RUN bun run build
@@ -51,4 +52,4 @@ COPY --from=builder /app/templates ./templates
 EXPOSE 3030
 
 # Start application with Bun
-CMD ["bun", "dist/main.js"]
+CMD ["bun", "dist/src/main.js"]

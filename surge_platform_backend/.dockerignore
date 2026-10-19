@@ -1,0 +1,12 @@
+
+node_modules
+dist
+.git
+.env
+.env.*
+!.env.example
+.vscode
+coverage
+*.log
+.DS_Store
+.bun-lock
